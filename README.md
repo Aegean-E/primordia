@@ -4,9 +4,9 @@ Primordia is a zero-dependency evolution sandbox: seed a biosphere, run its cloc
 genomes vary, compete and speciate. A run replays exactly from its seed, and a fossil record
 keeps the story of what happened.
 
-> **Status**: v1.0.0 - all six milestones are in: the genome model, the seasonal world and the
+> **Status**: v1.0.1 - all six milestones are in: the genome model, the seasonal world and the
 > deterministic engine, phenetic species with a fossil record, atomic saves and a command line,
-> and the web observatory.
+> and the web observatory; a post-release audit hardened configs, saves and the observatory.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -131,10 +131,11 @@ registry, the fossil record and the raw state of the engine's `random.Random`. R
 the same future the uninterrupted run would have had, and the suite proves it by comparing
 state hashes across a save/load boundary. Writes are atomic - a temp file is fsynced, the old
 save rotates to `.bak` and `os.replace` moves the new file in with retries - a corrupt file is
-quarantined while its `.bak` takes over, and every failure carries a `Why:` and a `Fix:` line
-with exit codes 0, 1 and 2. The shell answers `step [N]`, `stats`, `species [N]`, `fossil [N]`,
-`hash`, `save PATH`, `help` and `quit`; `pip install .` also installs the same commands as a
-`primordia` script.
+quarantined while its `.bak` takes over, a save written by a different save version is refused
+with a clear error and left untouched, a missing primary with a live `.bak` restores itself,
+and every failure carries a `Why:` and a `Fix:` line with exit codes 0, 1 and 2. The shell
+answers `step [N]`, `stats`, `species [N]`, `fossil [N]`, `hash`, `save PATH`, `help` and
+`quit`; `pip install .` also installs the same commands as a `primordia` script.
 
 ## 🔭 The Web Observatory
 
@@ -151,7 +152,9 @@ same facts as data, and `/save` downloads the standard save file.
 God mode is four interventions - `meteor` (burn a disc of food and everyone in it), `bloom`
 (feed a disc), `cull` (thin the weakest share) and `introduce` (release near-clones of the
 ancestral lineage). Each one mutates only state the engine already carries, so a shocked world
-still saves, loads and resumes exactly.
+still saves, loads and resumes exactly. When given a save file, the observatory writes the
+operator-driven changes - session steps and shocks - back to it when the server exits, and
+leaves an untouched save alone.
 
 ## 🧪 Development
 
@@ -161,15 +164,16 @@ The unit suite runs with:
 python -m unittest discover
 ```
 
-83 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
-operators; terrain, standing biomass, growth and temperature invariants for the world;
-classification, ancestry and monotone ids for the species registry; censuses, extinction and
-the bounded event log for the fossil record; population statistics; exact save round trips,
-atomic writes and backup recovery for persistence; empty-world and dead-world resilience for
-the engine; run, resume, stats, the version flag and the interactive shell for the command
-line; payload, dashboard rendering, the four god-mode shocks and a real-socket smoke for the
-observatory; and byte-identical replays of the same seed, staged grazing and hunting
-mechanics, armored-defense arithmetic, a drift-to-speciation run and a performance smoke test.
+95 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
+operators; terrain, standing biomass, growth and temperature invariants plus config validation
+for the world; classification, ancestry and monotone ids for the species registry; censuses,
+extinction and the bounded event log for the fossil record; population statistics; exact save
+round trips, atomic writes, backup recovery, version-drift refusal and crash-window recovery
+for persistence; empty-world and dead-world resilience for the engine; run, resume, stats, the
+version flag, session persistence and the interactive shell for the command line; payload,
+dashboard rendering, disc geometry for the four god-mode shocks and a real-socket smoke for the
+observatory; and byte-identical replays of the same seed, staged grazing and hunting mechanics,
+armored-defense arithmetic, a drift-to-speciation run and a performance smoke test.
 
 ## 📜 License
 

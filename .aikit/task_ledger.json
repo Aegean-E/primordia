@@ -5,7 +5,7 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792356760.901642
+    "updated_at": 1792356809.877789
   },
   "checkpoints": [
     {
@@ -198,6 +198,16 @@
       "status": "in_progress",
       "timestamp": 1792356760.901642,
       "timestamp_str": "2026-10-18 23:52:40"
+    },
+    {
+      "task_id": "task-primordia-audit-v1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[5/5] Release 1.0.1: README reflects the audit (status v1.0.1, save-version refusal and crash-window recovery, observatory session persistence, 95-test tally), ADR-007 records every decision, version bumped in __init__ and pyproject, verified --version 1.0.1, same-seed hash equality and an exact save/load replay over 400 ticks; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792356809.877789,
+      "timestamp_str": "2026-10-18 23:53:29"
     }
   ]
 }
