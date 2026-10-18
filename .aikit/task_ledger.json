@@ -1,40 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "task-primordia-audit-v1",
+    "task_id": "task-primordia-fixes-v2",
     "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1792356809.877789,
-    "completed_at": 1792356839.3311276
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1792359854.7592018
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-core-v1",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/6] Plan: zero-dependency evolution sandbox. Milestones: (1) package scaffold + bounded genome model with mutation/crossover; (2) tile world + deterministic engine tick loop; (3) species clustering + fossil record + analytics; (4) atomic persistence + full CLI + REPL; (5) web observatory (stdlib server + canvas); (6) hardening, docs and publish verification. Executing milestone 1 now: pyproject, primordia package, genome DTO, failing-first tests.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792353889.9070797,
-      "timestamp_str": "2026-10-18 23:04:49",
-      "impact_assessment": {
-        "why": "User asked for a self-chosen project on AIKit's projects subsystem; Primordia is a new genre beyond the existing projects: a seeded, deterministic evolution sandbox with speciation and a fossil record.",
-        "benefits": "A reproducible biosphere (same seed => same history) with a verifiable model: property tests over gene bounds, determinism and speciation; terminal live view plus a browser observatory; public repo under Aegean-E.",
-        "risks": "contract: gene schema and save JSON freeze early - additive changes only; dependency: none (Python 3.10+ stdlib only); concurrency: single-writer state file with advisory lock; state: power-loss atomicity via temp+fsync+os.replace with .bak and quarantine.",
-        "mitigation": "Failing-first tests for every behaviour change; gene bounds enforced inside the operators; atomic writes and corruption recovery mirror the house pattern; python aikit.py check primordia gates each milestone; an ADR precedes each commit."
-      }
-    },
-    {
-      "task_id": "task-primordia-core-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/6] Genome model complete: 12 normalized bounded genes, seeded mutation scaled by the mutability gene, whole-gene crossover, genetic distance; ADR-001 recorded, G-001 schema-freeze rule added, README quick-ref filled; 17/17 tests green in 0.01s, aikit check primordia 4/4 gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792354095.0567954,
-      "timestamp_str": "2026-10-18 23:08:15"
-    },
     {
       "task_id": "task-primordia-core-v1",
       "phase": "phase 3",
@@ -218,6 +191,32 @@
       "status": "completed",
       "timestamp": 1792356839.331129,
       "timestamp_str": "2026-10-18 23:53:59"
+    },
+    {
+      "task_id": "task-primordia-fixes-v2",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] Second hardening pass over the 1.0.1 review: (1) persistence edges - reading a folder or unreadable file becomes a SaveError with Why and Fix instead of a bare OSError, saving onto an existing folder is refused instead of renaming the folder away, a JSON without a version field gets an honest not-a-primordia-save message, and a quarantine that cannot move the file becomes a SaveError; (2) web and CLI edges - a malformed or negative Content-Length is refused with the 400 page instead of a handler crash or a read-until-EOF hang, an out-of-range port or failed bind becomes a SaveError asking for another port, the web pre-roll persists on exit like the rest of the session while a bare view stays read-only, and binding beyond loopback prints a no-authentication warning; (3) docs, ADR-008, version 1.0.2 and the release.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792357075.9343734,
+      "timestamp_str": "2026-10-18 23:57:55",
+      "impact_assessment": {
+        "why": "Reviewing the 1.0.1 changes found failure paths that still traceback or destroy state: save_to onto a folder renames the folder away, stats on a folder raises a raw OSError, a negative Content-Length deadlocks a request thread, web --ticks silently discards its pre-roll, and an unauthenticated socket exposed beyond loopback warns nobody.",
+        "benefits": "The Why and Fix promise now holds on the filesystem and socket edges too; no destructive surprises; a hung request is impossible; requested work survives the session; operators are warned before exposing a mutating server.",
+        "risks": "contract: web --ticks persists on exit and saving onto a folder is refused; dependency: none; concurrency: the lock model is unchanged, only stricter body parsing; state: the engine, saves written so far and determinism are untouched.",
+        "mitigation": "Failing-first tests for every behaviour change; full gates at each milestone; small milestoned commits with explicit staging."
+      }
+    },
+    {
+      "task_id": "task-primordia-fixes-v2",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[1/3] Persistence edges hardened: reading a folder (or an unreadable file) raises a SaveError with Why and Fix instead of a bare OSError; saving onto an existing folder is refused before anything moves; JSON without a version field reports 'not a primordia save' without quarantine; a quarantine whose move fails raises a SaveError and leaves the file in place. 4 new failing-first tests; 99/99 tests in 1.9s; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792359854.7592018,
+      "timestamp_str": "2026-10-19 00:44:14"
     }
   ]
 }

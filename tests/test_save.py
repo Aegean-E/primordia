@@ -77,6 +77,13 @@ class RoundTripTests(unittest.TestCase):
         self.assertTrue(self.path.exists())
         self.assertEqual(list(self.path.parent.glob(self.path.name + ".corrupt_*")), [])
 
+    def test_a_json_file_without_a_version_is_not_taken_for_a_save(self):
+        self.path.write_text(json.dumps({"hello": "there"}), encoding="utf-8")
+        with self.assertRaises(SaveError) as caught:
+            load_from(self.path)
+        self.assertIn("not a primordia save", str(caught.exception))
+        self.assertTrue(self.path.exists())
+
     def test_a_shocked_world_round_trips_exactly(self):
         original = Engine(config=small_config(), seed=4, founders=30)
         for _ in range(60):
@@ -160,3 +167,36 @@ class AtomicityTests(unittest.TestCase):
             with self.assertRaises(SaveError):
                 save_to(engine, self.path)
         self.assertEqual(list(self.path.parent.glob("*.tmp_*")), [])
+
+    def test_reading_a_folder_raises_a_save_error_not_a_crash(self):
+        folder = Path(self.temp.name) / "run.json"
+        folder.mkdir()
+        with self.assertRaises(SaveError) as caught:
+            load_from(folder)
+        message = str(caught.exception)
+        self.assertIn("Why:", message)
+        self.assertIn("Fix:", message)
+        self.assertTrue(folder.is_dir())
+
+    def test_writing_onto_a_folder_is_refused_before_anything_moves(self):
+        folder = Path(self.temp.name) / "run.json"
+        folder.mkdir()
+        engine = Engine(config=small_config(), seed=3, founders=10)
+        with self.assertRaises(SaveError) as caught:
+            save_to(engine, folder)
+        self.assertIn("Fix:", str(caught.exception))
+        self.assertTrue(folder.is_dir())
+        self.assertEqual(list(folder.iterdir()), [])
+        self.assertFalse(self.backup.exists())
+
+    def test_a_quarantine_that_cannot_move_the_file_raises_cleanly(self):
+        engine = Engine(config=small_config(), seed=3, founders=10)
+        save_to(engine, self.path)
+        self.path.write_text("{broken", encoding="utf-8")
+        with mock.patch("primordia.save.os.replace", side_effect=OSError("locked")):
+            with self.assertRaises(SaveError) as caught:
+                load_from(self.path)
+        message = str(caught.exception)
+        self.assertIn("Why:", message)
+        self.assertIn("Fix:", message)
+        self.assertTrue(self.path.exists())

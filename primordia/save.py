@@ -49,6 +49,12 @@ def dump_text(engine: Engine) -> str:
 def save_to(engine: Engine, path: Union[str, Path]) -> Path:
     """Write the engine's full state to `path` atomically, rotating the old file to `.bak`."""
     path = Path(path)
+    if path.is_dir():
+        raise SaveError(
+            f"could not write the save to {path}",
+            why="that path is a folder, and a folder cannot be replaced by a file",
+            fix="choose a file path inside the folder, for example `run.json`",
+        )
     payload = dump_text(engine)
     temp = path.with_name(path.name + f".tmp_{os.getpid()}")
     try:
@@ -95,10 +101,29 @@ def load_from(path: Union[str, Path]) -> Engine:
             why="no file exists at that path",
             fix="check the path, or start a new run with `python -m primordia run --save <path>`",
         )
+    if path.is_dir():
+        raise SaveError(
+            f"could not read the save at {path}",
+            why="that path is a folder, not a save file",
+            fix="point at the save file itself, for example `<folder>/run.json`",
+        )
     try:
         return _engine_from_data(_read_json(path))
+    except OSError as error:
+        raise SaveError(
+            f"could not read the save at {path}",
+            why=f"the file could not be opened or read ({error})",
+            fix="check the path and its permissions, then try again",
+        ) from error
     except (json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
-        wreck = _quarantine(path)
+        try:
+            wreck = _quarantine(path)
+        except OSError as move_error:
+            raise SaveError(
+                f"could not read the save at {path}",
+                why=f"the file is corrupt and could not be moved aside ({move_error})",
+                fix="close whatever is using the file, or move it away yourself, then try again",
+            ) from move_error
         backup = Path(str(path) + BACKUP_SUFFIX)
         if backup.exists():
             try:
@@ -216,6 +241,12 @@ def _engine_to_data(engine: Engine) -> Dict[str, Any]:
 
 
 def _engine_from_data(data: Dict[str, Any]) -> Engine:
+    if not isinstance(data, dict) or "version" not in data:
+        raise SaveError(
+            "this file is not a primordia save",
+            why="its JSON has no format version, so it was not written by primordia",
+            fix="check that the path points at a primordia save, or start a new run",
+        )
     version = data.get("version")
     if version != SAVE_VERSION:
         raise SaveError(
