@@ -40,10 +40,15 @@ class SaveError(Exception):
         self.fix = fix
 
 
+def dump_text(engine: Engine) -> str:
+    """The engine's full state as the compact JSON text `save_to` writes."""
+    return json.dumps(_engine_to_data(engine), separators=(",", ":"))
+
+
 def save_to(engine: Engine, path: Union[str, Path]) -> Path:
     """Write the engine's full state to `path` atomically, rotating the old file to `.bak`."""
     path = Path(path)
-    payload = json.dumps(_engine_to_data(engine), separators=(",", ":"))
+    payload = dump_text(engine)
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         temp = path.with_name(path.name + f".tmp_{os.getpid()}")

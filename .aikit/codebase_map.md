@@ -6,10 +6,10 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `20`
-- **Total Classes**: `31`
-- **Total Functions / Methods**: `39`
-- **Total Source Lines**: `1995`
+- **Total Python Modules**: `23`
+- **Total Classes**: `40`
+- **Total Functions / Methods**: `64`
+- **Total Source Lines**: `2656`
 
 ---
 
@@ -43,7 +43,7 @@
 ### [`primordia/cli.py`](primordia/cli.py)
 > *The command line: run a biosphere, resume one, report on it, or step it interactively.*
 
-**Size**: `221` lines (`8689` bytes)
+**Size**: `241` lines (`9680` bytes)
 
 **Functions:**
 - `def main(argv, out, err, stdin)` - *Run one command; returns the exit code: 0 success, 1 failure, 2 usage.*
@@ -51,6 +51,7 @@
 - `def _run(args, out)`
 - `def _resume(args, out)`
 - `def _stats(args, out)`
+- `def _web(args, out)`
 - `def _repl(args, out, stdin)`
 - `def _advance(engine, ticks)`
 - `def _report(engine, out)`
@@ -151,13 +152,14 @@
 ### [`primordia/save.py`](primordia/save.py)
 > *Persistence: one versioned JSON snapshot carries a whole run across processes.*
 
-**Size**: `251` lines (`9855` bytes)
+**Size**: `256` lines (`10001` bytes)
 
 **Classes:**
 - `class SaveError` - *A save could not be read or written; the message carries Why and Fix lines.*
   - Method `.__init__(summary, why, fix)`
 
 **Functions:**
+- `def dump_text(engine)` - *The engine's full state as the compact JSON text `save_to` writes.*
 - `def save_to(engine, path)` - *Write the engine's full state to `path` atomically, rotating the old file to `.bak`.*
 - `def load_from(path)` - *Read a saved engine back; quarantine a corrupt file and fall back to its `.bak`.*
 - `def _replace(source, target)` - *`os.replace` with a few immediate retries; a busy indexer or scanner is transient.*
@@ -169,6 +171,26 @@
 - `def _creature_from(row)`
 - `def _species_from(row)`
 - `def _fossil_from(data)`
+
+---
+
+### [`primordia/shocks.py`](primordia/shocks.py)
+> *God-mode interventions: meteors, blooms, culls and introductions.*
+
+**Size**: `116` lines (`4781` bytes)
+
+**Classes:**
+- `class ShockReport` - *What one intervention did, for the operator and the tests.*
+
+**Functions:**
+- `def meteor(engine, x, y, radius)` - *Burn a disc: its land tiles lose their food and every creature in it dies unburied.*
+- `def bloom(engine, x, y, radius, share)` - *Feed a disc: its land tiles rise toward the food cap without ever passing it.*
+- `def cull(engine, share)` - *Thin the population: the weakest share (lowest energy, then lowest cid) is removed.*
+- `def introduce(engine, count)` - *Release near-clones of the ancestral lineage onto random land tiles.*
+- `def _disc(engine, x, y, radius)` - *Every land tile within `radius` Chebyshev steps of `(x, y)`.*
+- `def _check_spot(engine, x, y)`
+- `def _check_radius(radius)`
+- `def _check_share(share)`
 
 ---
 
@@ -185,6 +207,27 @@
   - Method `.get(species_id)` - *The species record for `species_id`, ids being 1-based in founding order.*
   - Method `.from_species(species, distance)` - *Rebuild a registry from stored records, for example when a save resumes.*
   - Method `.classify(genome, tick, ancestor)` - *The (species_id, is_new) of `genome`; a new species records `ancestor` and `tick`.*
+
+---
+
+### [`primordia/web.py`](primordia/web.py)
+> *The observatory: a local web view of a running world, with god-mode interventions.*
+
+**Size**: `332` lines (`15258` bytes)
+
+**Functions:**
+- `def state_payload(engine)` - *The observable facts of one world, as JSON-ready data.*
+- `def render_dashboard(engine, auto, notice)` - *The whole dashboard as one self-contained HTML page.*
+- `def _map_html(engine, payload)` - *The tile grid: food shaded green, water blue, creatures dotted by lineage colour.*
+- `def _god_forms(cx, cy, width, height)` - *The intervention forms, pre-filled with the world's centre.*
+- `def make_handler(engine, lock, quiet)` - *The HTTP handler bound to one engine; every engine touch happens under `lock`.*
+- `def make_server(engine, host, port, quiet)` - *A server for `engine` on `(host, port)`; port 0 picks a free one.*
+- `def serve(engine, host, port, out)` - *Run the observatory until interrupted; returns the exit code 0.*
+- `def _apply_god(engine, path, fields)` - *Map one god-mode POST path onto a shock; bad input raises ValueError.*
+- `def _query_int(query, name, default, low, high)`
+- `def _field_int(fields, name)`
+- `def _field_float(fields, name, default)`
+- `def _error_page(message)` - *A refusal page that names what was rejected and how to fix the request.*
 
 ---
 
@@ -364,6 +407,42 @@
 
 **Functions:**
 - `def centered(**traits)`
+
+---
+
+### [`tests/test_web.py`](tests/test_web.py)
+> *Unit tests for the observatory: state payload, dashboard, god-mode shocks and the server.*
+
+**Size**: `188` lines (`7811` bytes)
+
+**Classes:**
+- `class PayloadTests`
+  - Method `.test_state_payload_reports_the_living_world()`
+  - Method `.test_state_payload_is_json_ready()`
+- `class DashboardTests`
+  - Method `.test_dashboard_carries_the_map_the_tables_and_the_controls()`
+  - Method `.test_auto_refresh_is_optional()`
+- `class MeteorTests`
+  - Method `.test_meteor_strips_food_and_kills_within_its_radius()`
+- `class BloomTests`
+  - Method `.test_bloom_raises_food_toward_the_cap_without_passing_it()`
+- `class CullTests`
+  - Method `.test_cull_removes_the_weakest_share_deterministically()`
+- `class IntroduceTests`
+  - Method `.test_introduce_releases_near_clones_of_the_founder_lineage()`
+- `class ValidationTests`
+  - Method `.test_shocks_reject_impossible_parameters()`
+- `class HttpSmokeTests`
+  - Method `.setUpClass()`
+  - Method `.tearDownClass()`
+  - Method `.test_dashboard_state_and_save_are_served()`
+  - Method `.test_step_query_advances_the_clock()`
+  - Method `.test_god_mode_form_mutates_the_world()`
+
+**Functions:**
+- `def small_engine(seed, founders, **overrides)`
+- `def flat_genome()`
+- `def land_tile(engine, skip)`
 
 ---
 

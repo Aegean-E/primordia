@@ -5,7 +5,7 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792355531.0861971
+    "updated_at": 1792355849.8879204
   },
   "checkpoints": [
     {
@@ -93,6 +93,26 @@
       "status": "in_progress",
       "timestamp": 1792355531.0861971,
       "timestamp_str": "2026-10-18 23:32:11"
+    },
+    {
+      "task_id": "task-primordia-core-v1",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[5/6] Implementing the web observatory: shocks.py (god-mode interventions - meteor, bloom, cull, introduce - as pure engine mutations with no new state, so saves stay exactly resumable), web.py (stdlib http.server dashboard: server-rendered map, stats, species table, fossil events; ?step= and meta-refresh auto-play; /state.json; /save download), a  CLI command, and tests for payload, rendering, shocks and one real-socket smoke. Failing-first tests come first.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792355638.8798661,
+      "timestamp_str": "2026-10-18 23:33:58"
+    },
+    {
+      "task_id": "task-primordia-core-v1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[5/6] Observatory complete: shocks.py (meteor, bloom, cull, introduce - pure engine mutations adding no state, so saves still resume exactly) and web.py (stdlib http.server: server-rendered food-shaded map with lineage-coloured creature dots, counters, species table, fossil events; ?step=N and meta-refresh auto-play; /state.json; /save download; god-mode POST forms refused with 400 Why/Fix pages, successes redirected with a notice banner); web CLI command. Dashboard renders a default world in about a millisecond (63 KB) and state.json well under one; 79/79 tests in about 1.6s including a real-socket smoke; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792355849.8879204,
+      "timestamp_str": "2026-10-18 23:37:29"
     }
   ]
 }

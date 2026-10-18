@@ -1,9 +1,10 @@
 """The command line: run a biosphere, resume one, report on it, or step it interactively.
 
 Every command works on the same engine and the same save format; `run` seeds a fresh world,
-`resume` continues a saved one in place, `stats` reports without stepping, and `repl` opens an
-interactive shell (step, species, fossil, hash, save). Streams are injected, errors carry a
-`Why:` and a `Fix:` line, and exit codes are 0 success, 1 failure and 2 usage.
+`resume` continues a saved one in place, `stats` reports without stepping, `repl` opens an
+interactive shell (step, species, fossil, hash, save) and `web` serves the observatory. Streams
+are injected, errors carry a `Why:` and a `Fix:` line, and exit codes are 0 success, 1 failure
+and 2 usage.
 """
 
 from __future__ import annotations
@@ -44,6 +45,8 @@ def main(argv: Optional[Sequence[str]] = None, out: Optional[TextIO] = None,
             return _stats(args, out)
         if args.command == "repl":
             return _repl(args, out, stdin)
+        if args.command == "web":
+            return _web(args, out)
     except SaveError as error:
         print(error, file=err)
         return 1
@@ -78,6 +81,14 @@ def _build_parser() -> argparse.ArgumentParser:
     repl.add_argument("path", metavar="PATH", nargs="?",
                       help="a save to open, or none for a fresh world")
     repl.add_argument("--seed", type=int, default=42, help="the seed of a fresh world")
+
+    web = commands.add_parser("web", help="open the observatory: a local web view of a world")
+    web.add_argument("path", metavar="PATH", nargs="?",
+                     help="a save to open, or none for a fresh world")
+    web.add_argument("--seed", type=int, default=42, help="the seed of a fresh world")
+    web.add_argument("--ticks", type=int, default=0, help="ticks to run before opening")
+    web.add_argument("--host", default="127.0.0.1", help="interface to bind")
+    web.add_argument("--port", type=int, default=8000, help="port to bind (0 picks a free one)")
     return parser
 
 
@@ -105,6 +116,15 @@ def _resume(args: argparse.Namespace, out: TextIO) -> int:
 def _stats(args: argparse.Namespace, out: TextIO) -> int:
     _report(load_from(args.path), out)
     return 0
+
+
+def _web(args: argparse.Namespace, out: TextIO) -> int:
+    from primordia.web import serve
+
+    engine = load_from(args.path) if args.path else Engine(seed=args.seed)
+    _advance(engine, args.ticks)
+    return serve(engine, args.host, args.port,
+                 out=lambda line: print(line, file=out, flush=True))
 
 
 def _repl(args: argparse.Namespace, out: TextIO, stdin: TextIO) -> int:

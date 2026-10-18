@@ -4,9 +4,9 @@ Primordia is a zero-dependency evolution sandbox: seed a biosphere, run its cloc
 genomes vary, compete and speciate. A run replays exactly from its seed, and a fossil record
 keeps the story of what happened.
 
-> **Status**: milestone 4 of 6 - the engine, the species classifier, the fossil record,
-> persistence and the command line are in place; the web observatory and the final hardening
-> pass arrive in the next milestones.
+> **Status**: milestone 5 of 6 - the engine, species and the fossil record, persistence, the
+> command line and the web observatory are in place; the final hardening pass and the release
+> arrive in the next milestone.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -42,7 +42,9 @@ primordia/
 │   ├── fossil.py             <- the fossil record: sightings, peaks and events per species
 │   ├── genome.py             <- bounded genes and variation operators
 │   ├── save.py               <- versioned atomic saves and corrupt-file recovery
+│   ├── shocks.py             <- god-mode interventions: meteor, bloom, cull, introduce
 │   ├── species.py            <- phenetic species: genomes cluster by genetic distance
+│   ├── web.py                <- the observatory: a local web view of a running world
 │   └── world.py              <- tile grid, food layer and temperature field
 └── tests/                    <- unit test suite
     ├── __init__.py
@@ -53,6 +55,7 @@ primordia/
     ├── test_genome.py        <- gene bounds, mutation, crossover and distance
     ├── test_save.py          <- round trips, atomic writes and backup recovery
     ├── test_species.py       <- classification, ancestry and monotone species ids
+    ├── test_web.py           <- payload, dashboard, god-mode shocks and a socket smoke
     └── test_world.py         <- terrain, food and temperature
 ```
 
@@ -130,6 +133,23 @@ with exit codes 0, 1 and 2. The shell answers `step [N]`, `stats`, `species [N]`
 `hash`, `save PATH`, `help` and `quit`; `pip install .` also installs the same commands as a
 `primordia` script.
 
+## 🔭 The Web Observatory
+
+```bash
+python -m primordia web --seed 7 --ticks 500      # then open http://127.0.0.1:8000
+```
+
+The observatory is a standard-library-only server rendering one world: a food-shaded map with
+every creature dotted in its lineage's colour, the population and fossil counters, the species
+table and the recent fossil events. `?step=N` advances the clock before rendering and
+`?step=N&auto=S` adds a meta refresh so a tab can watch a world live; `/state.json` serves the
+same facts as data, and `/save` downloads the standard save file.
+
+God mode is four interventions - `meteor` (burn a disc of food and everyone in it), `bloom`
+(feed a disc), `cull` (thin the weakest share) and `introduce` (release near-clones of the
+ancestral lineage). Each one mutates only state the engine already carries, so a shocked world
+still saves, loads and resumes exactly.
+
 ## 🧪 Development
 
 The unit suite runs with:
@@ -138,11 +158,12 @@ The unit suite runs with:
 python -m unittest discover
 ```
 
-67 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
+79 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
 operators; terrain, standing biomass, growth and temperature invariants for the world;
 classification, ancestry and monotone ids for the species registry; censuses, extinction and
 the bounded event log for the fossil record; population statistics; exact save round trips,
 atomic writes and backup recovery for persistence; run, resume, stats and the interactive
-shell for the command line; and for the engine, byte-identical replays of the same seed, world
-and creature invariants over runs, staged grazing and hunting mechanics, armored-defense
-arithmetic, a drift-to-speciation run and a performance smoke test.
+shell for the command line; payload, dashboard rendering, the four god-mode shocks and a
+real-socket smoke for the observatory; and for the engine, byte-identical replays of the same
+seed, world and creature invariants over runs, staged grazing and hunting mechanics,
+armored-defense arithmetic, a drift-to-speciation run and a performance smoke test.

@@ -101,3 +101,27 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   Locking stays out on purpose: `os.replace` guarantees a reader never sees a half-written
   file, and the design has one writer per save. `SaveError` messages are the pattern for every
   later failure surface, including the web observatory.
+
+### ADR-005: A server-rendered observatory, and god mode as pure state mutations
+
+- **Date**: 2026-10-18
+- **Status**: Accepted
+- **Context**: Watching evolution should not require writing code: a run needs a view. The
+  project is zero-dependency, so the view must come from the standard library alone - no
+  framework, no front-end build, no third-party requests - and it must read the same state the
+  CLI already owns, without forking the engine or its save format. What the milestone plan
+  calls god mode must push a world around without breaking the replay contract.
+- **Decision**: `primordia/web.py` serves one engine through `http.server`: the dashboard is
+  server-rendered HTML (map, counters, species table, fossil events), `?step=N` advances the
+  clock before rendering, `?step=N&auto=S` adds a meta refresh for auto-play, `/state.json`
+  serves the observable facts as data and `/save` downloads the standard save file. God-mode
+  interventions live in `primordia/shocks.py` - `meteor`, `bloom`, `cull` and `introduce` - as
+  pure mutations of state the engine already carries, each returning a small `ShockReport`.
+  Requests are serialized under one lock, refused with a 400 page carrying `Why:` and `Fix:`,
+  and successful posts redirect with the report in the notice banner.
+- **Consequences**: The dashboard renders a default world in about a millisecond (63 KB of
+  HTML) and the state endpoint in well under one; the suite covers the payload, the dashboard,
+  all four shocks and one real-socket smoke. Because shocks add no state, the save version
+  stays 1 and a shocked world resumes exactly - a future sustained-climate shock would need
+  stored world state and a save-version bump, so it waits. The observatory steps only the
+  ticks the operator asked for; it never advances a world behind their back.
