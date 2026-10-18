@@ -6,3 +6,4 @@ Add one with `python aikit.py guideline <name> "<rule>" --source <user|ADR-NNN|p
 hand as one line below in the form `- **G-NNN** (source): rule`; IDs are never reused.
 
 ## Rules
+- **G-001** (ADR-001): Genome gene names and order are frozen once a save exists; schema changes are additive (append new genes) with a GENOME_VERSION bump and a migration.
