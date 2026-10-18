@@ -9,7 +9,7 @@ from primordia.genome import Genome
 
 @dataclass
 class Creature:
-    """A living agent; `species` stays 0 until the classifier names a lineage."""
+    """A living agent; `species` names the lineage the registry classified it into."""
 
     cid: int
     genome: Genome

@@ -31,6 +31,12 @@ class TerrainTests(unittest.TestCase):
 
 
 class FoodTests(unittest.TestCase):
+    def test_land_starts_with_standing_biomass(self):
+        world = make_world(11, width=6, height=4, food_cap=8.0, initial_food_share=0.5)
+        for tile, terrain in enumerate(world.terrain):
+            expected = 4.0 if terrain == LAND else 0.0
+            self.assertEqual(world.food[tile], expected)
+
     def test_food_regrows_but_never_exceeds_the_cap(self):
         world = make_world(0, width=8, height=4, food_cap=5.0, food_regrowth=0.5)
         for tick in range(40):
@@ -58,7 +64,7 @@ class FoodTests(unittest.TestCase):
         self.assertLessEqual(taken, world.config.food_cap)
 
     def test_add_food_returns_a_carcass_to_the_soil(self):
-        world = make_world(5, width=6, height=3, food_cap=3.0)
+        world = make_world(5, width=6, height=3, food_cap=3.0, initial_food_share=0.0)
         tile = world.terrain.index(LAND)
         world.add_food(tile, 2.0)
         self.assertAlmostEqual(world.food[tile], 2.0)

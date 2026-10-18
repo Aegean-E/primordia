@@ -7,3 +7,4 @@ hand as one line below in the form `- **G-NNN** (source): rule`; IDs are never r
 
 ## Rules
 - **G-001** (ADR-001): Genome gene names and order are frozen once a save exists; schema changes are additive (append new genes) with a GENOME_VERSION bump and a migration.
+- **G-002** (ADR-003): Species ids are 1-based, monotone and never reused, and a new species always records its ancestor and birth tick; the fossil event log may drop old events but its speciation and extinction counters never decrease.

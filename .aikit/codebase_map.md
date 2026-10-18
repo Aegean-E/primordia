@@ -6,10 +6,10 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `9`
-- **Total Classes**: `18`
-- **Total Functions / Methods**: `10`
-- **Total Source Lines**: `964`
+- **Total Python Modules**: `15`
+- **Total Classes**: `27`
+- **Total Functions / Methods**: `13`
+- **Total Source Lines**: `1331`
 
 ---
 
@@ -22,20 +22,31 @@
 
 ---
 
+### [`primordia/analytics.py`](primordia/analytics.py)
+> *Small pure statistics over a population: counts by species and mean gene values.*
+
+**Size**: `25` lines (`898` bytes)
+
+**Functions:**
+- `def species_counts(creatures)` - *How many living creatures belong to each species id.*
+- `def trait_means(creatures)` - *The population's mean value per gene; all zeros for an empty population.*
+
+---
+
 ### [`primordia/creature.py`](primordia/creature.py)
 > *The creature: one genome plus the mutable per-tick state the engine carries.*
 
-**Size**: `21` lines (`436` bytes)
+**Size**: `21` lines (`441` bytes)
 
 **Classes:**
-- `class Creature` - *A living agent; `species` stays 0 until the classifier names a lineage.*
+- `class Creature` - *A living agent; `species` names the lineage the registry classified it into.*
 
 ---
 
 ### [`primordia/engine.py`](primordia/engine.py)
 > *The deterministic tick loop: metabolism, sensing, action, birth and death.*
 
-**Size**: `357` lines (`16493` bytes)
+**Size**: `400` lines (`18817` bytes)
 
 **Classes:**
 - `class Engine` - *The simulation: a world plus its creatures, advanced one deterministic tick at a time.*
@@ -43,8 +54,8 @@
   - Method `.spawn(genome, x, y, energy)` - *Place one creature on a land tile; the door tests and tools stage a known state with.*
   - Method `.step()` - *Advance one tick: the world updates, then every living creature acts in cid order.*
   - Method `.snapshot_hash()` - *A SHA-256 over the tick and the full creature and food state; equal state, equal hash.*
-  - Method `._found(founders)` - *Seed the first population from random land tiles, biased toward grazing habits.*
-  - Method `._new_creature(genome, x, y, energy)`
+  - Method `._found(founders)` - *Seed one ancestral species: a viable template with per-founder jitter around it.*
+  - Method `._new_creature(genome, x, y, energy, species_id)`
   - Method `._neighbour_hash()` - *Living creatures by tile index; bucket order is cid order, so scans stay deterministic.*
   - Method `._nearby(creature, radius, buckets)` - *Living others within `radius` tiles, in a deterministic tile-then-bucket order.*
   - Method `._tick_creature(creature, buckets, newborns)`
@@ -58,7 +69,7 @@
   - Method `._move_towards(creature, x, y)` - *Step one tile toward (x, y), preferring the larger axis; a fast creature may stride twice.*
   - Method `._move(creature, x, y)`
   - Method `._random_free_neighbour(creature)`
-  - Method `._richest_tile(creature, radius)`
+  - Method `._richest_tile(creature, radius)` - *The most valuable tile in sight: its stock minus a travel cost per step of distance.*
   - Method `._weakest_prey(hunter, others)`
   - Method `._nearest(creature, candidates)`
   - Method `._die(creature)` - *Death returns the body to the soil at the creature's tile.*
@@ -67,6 +78,22 @@
   - Method `._repro_threshold(creature)`
   - Method `._max_age(creature)`
   - Method `._preferred_temperature(creature)`
+
+---
+
+### [`primordia/fossil.py`](primordia/fossil.py)
+> *The fossil record: species sightings, peaks, extinction events and a bounded event log.*
+
+**Size**: `78` lines (`3005` bytes)
+
+**Classes:**
+- `class FossilEvent` - *One durable moment: a speciation or an extinction, with its tick and lineage ids.*
+- `class SpeciesTrace` - *One lineage's sighting history, as censuses accumulate.*
+- `class FossilRecord` - *Sightings and events per species; a species absent from a census is extinct.*
+  - Method `.__init__(event_cap)`
+  - Method `.record_speciation(tick, species_id, ancestor, detail)` - *Note a new lineage; the counter is monotonic even when the window forgets.*
+  - Method `.census(counts, tick)` - *Update sightings and peaks from one population count per species; note extinctions.*
+  - Method `._append(event)`
 
 ---
 
@@ -91,10 +118,25 @@
 
 ---
 
+### [`primordia/species.py`](primordia/species.py)
+> *Phenetic species: genomes cluster by distance to a founding representative.*
+
+**Size**: `56` lines (`2075` bytes)
+
+**Classes:**
+- `class Species` - *A named lineage: who founded it, when, and from which species it split.*
+- `class SpeciesRegistry` - *Assigns every genome a species id by distance to each species' founding genome.*
+  - Method `.__init__(distance)`
+  - Method `.__len__()`
+  - Method `.get(species_id)` - *The species record for `species_id`, ids being 1-based in founding order.*
+  - Method `.classify(genome, tick, ancestor)` - *The (species_id, is_new) of `genome`; a new species records `ancestor` and `tick`.*
+
+---
+
 ### [`primordia/world.py`](primordia/world.py)
 > *Primordia's world: the tile grid, its food layer and its drifting temperature field.*
 
-**Size**: `92` lines (`3707` bytes)
+**Size**: `95` lines (`3885` bytes)
 
 **Classes:**
 - `class WorldConfig` - *The world's shape and pace: fixed at creation and carried by every save.*
@@ -115,10 +157,22 @@
 
 ---
 
+### [`tests/test_analytics.py`](tests/test_analytics.py)
+> *Unit tests for the population statistics helpers.*
+
+**Size**: `23` lines (`1040` bytes)
+
+**Classes:**
+- `class AnalyticsTests`
+  - Method `.test_counts_and_means_on_a_seeded_population()`
+  - Method `.test_empty_population_has_no_counts_and_zero_means()`
+
+---
+
 ### [`tests/test_engine.py`](tests/test_engine.py)
 > *Unit tests for the engine: determinism, invariants and the behavioural mechanics.*
 
-**Size**: `141` lines (`5976` bytes)
+**Size**: `179` lines (`7549` bytes)
 
 **Classes:**
 - `class DeterminismTests`
@@ -130,9 +184,14 @@
   - Method `.test_population_dynamics_move_over_time()`
 - `class BehaviourTests`
   - Method `.test_grazing_moves_energy_from_the_soil_to_the_grazer()`
+  - Method `.test_grazer_grazes_where_it_stands_instead_of_marching_to_equal_stock()`
   - Method `.test_attack_kills_a_weaker_neighbour_and_feeds_the_hunter()`
   - Method `.test_armored_victim_takes_less_damage()`
   - Method `.test_two_creatures_reproduce_and_children_hold_bounded_genomes()`
+- `class SpeciesIntegrationTests`
+  - Method `.test_founders_start_as_one_species()`
+  - Method `.test_census_populates_the_fossil_record()`
+  - Method `.test_drift_grows_the_registry_over_time()`
 - `class PerformanceTests`
   - Method `.test_two_hundred_ticks_stay_fast()`
 
@@ -141,6 +200,20 @@
 - `def land_tile(engine)`
 - `def adjacent_land(engine)`
 - `def staged_genome(mutability, **traits)`
+
+---
+
+### [`tests/test_fossil.py`](tests/test_fossil.py)
+> *Unit tests for the fossil record: sightings, peaks, extinctions and the event log.*
+
+**Size**: `46` lines (`1910` bytes)
+
+**Classes:**
+- `class CensusTests`
+  - Method `.test_census_records_first_last_and_peak()`
+  - Method `.test_extinction_when_a_species_leaves_the_census()`
+  - Method `.test_extinct_species_can_reappear_without_a_new_speciation()`
+  - Method `.test_event_log_is_bounded_and_counters_stay_monotonic()`
 
 ---
 
@@ -179,10 +252,28 @@
 
 ---
 
+### [`tests/test_species.py`](tests/test_species.py)
+> *Unit tests for the species registry: phenetic clustering around founding genomes.*
+
+**Size**: `49` lines (`2048` bytes)
+
+**Classes:**
+- `class RegistryTests`
+  - Method `.test_first_genome_founds_species_one()`
+  - Method `.test_near_clones_join_the_same_species()`
+  - Method `.test_far_drift_founds_a_new_species_with_its_ancestor()`
+  - Method `.test_representative_is_the_founding_genome()`
+  - Method `.test_ids_are_monotonic_and_unique()`
+
+**Functions:**
+- `def centered(**traits)`
+
+---
+
 ### [`tests/test_world.py`](tests/test_world.py)
 > *Unit tests for the world: terrain, the food layer and the temperature field.*
 
-**Size**: `94` lines (`3659` bytes)
+**Size**: `100` lines (`3993` bytes)
 
 **Classes:**
 - `class TerrainTests`
@@ -190,6 +281,7 @@
   - Method `.test_index_and_xy_round_trip()`
   - Method `.test_generation_is_seeded_reproducible()`
 - `class FoodTests`
+  - Method `.test_land_starts_with_standing_biomass()`
   - Method `.test_food_regrows_but_never_exceeds_the_cap()`
   - Method `.test_water_tiles_are_barren()`
   - Method `.test_take_food_is_bounded_and_leaves_no_debt()`

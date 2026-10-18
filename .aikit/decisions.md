@@ -43,3 +43,34 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   while thermophily and metabolism keep wide spreads (climate sorting, efficiency ratchets).
   The constants are the knob: an environmental shock (the milestone-5 godmode events) or a
   constants change re-opens body size, and any change to them is an ADR-002 amendment.
+
+### ADR-003: Phenetic species, a fossil record, and two ecology repairs the integration forced
+
+- **Date**: 2026-10-18
+- **Status**: Accepted
+- **Context**: Milestone 3 adds visible evolution: genomes must cluster into named species,
+  speciation must be an event worth watching, and the past must survive in bounded memory.
+  Wiring the classifier into the engine exposed two engine flaws that made long runs fragile:
+  independent random founders scattered across a hundred species and died on bad draws, and
+  creatures chased the single richest tile, herding whole populations onto stripped ground
+  while food rotted elsewhere.
+- **Decision**: Species are phenetic and tree-shaped: `SpeciesRegistry` keeps each lineage's
+  founding genome, a genome joins the nearest species when `genetic_distance` to that founder
+  is at most `SPECIATION_DISTANCE` (0.18), and otherwise founds a new species that records its
+  ancestor and birth tick. Species never merge; ids are 1-based, monotone and never reused.
+  `FossilRecord` censuses the living population each tick into one `SpeciesTrace` per species
+  (first and last seen, peak population, extinction tick) plus a bounded event log of
+  speciations and extinctions, while the counters stay monotone even when old events drop.
+  Founders are one ancestral species: a template drawn from the survivable ranges of the cost
+  genes (metabolism, size, speed, sense, thermophily, diet) is jittered by `FOUNDER_JITTER`
+  per founder, so the lineage starts with real variance inside one species. Two repairs ride
+  along: the world starts with standing biomass (`initial_food_share`), and a tile is valued as
+  its stock minus a travel cost per step, so creatures graze where they stand when local food
+  is good and only walk when the walk pays.
+- **Consequences**: A default-world run now sustains roughly ninety to a hundred and ninety
+  creatures across seeds through four thousand ticks, radiating fifteen to a hundred species
+  with visible extinctions, at about a thousand ticks per second; small test worlds still
+  wobble between booms and crashes, which is the honest ecology, so tests that need radiation
+  pin a seed with measured margin. This amends ADR-002: the forage rule reads best-value tile,
+  not richest tile, and the world no longer starts barren; the rest of ADR-002 stands. A save
+  must carry species ids and the fossil counters, so milestone 4 serializes them (G-002).

@@ -76,7 +76,7 @@ class InvariantTests(unittest.TestCase):
         self.assertLessEqual(max(engine.world.temperature), 1.0)
 
     def test_population_dynamics_move_over_time(self):
-        engine = small_engine(7, founders=40)
+        engine = small_engine(7)
         before = engine.next_cid
         for _ in range(200):
             engine.step()
@@ -85,7 +85,7 @@ class InvariantTests(unittest.TestCase):
 
 class BehaviourTests(unittest.TestCase):
     def test_grazing_moves_energy_from_the_soil_to_the_grazer(self):
-        engine = small_engine(2, founders=0)
+        engine = small_engine(2, founders=0, initial_food_share=0.0)
         x, y = land_tile(engine)
         tile = engine.world.index(x, y)
         engine.world.food[tile] = 5.0
@@ -96,6 +96,21 @@ class BehaviourTests(unittest.TestCase):
         engine.step()
         self.assertLess(engine.world.food[tile], 4.0)
         self.assertGreater(grazer.energy, 20.5)
+
+    def test_grazer_grazes_where_it_stands_instead_of_marching_to_equal_stock(self):
+        engine = small_engine(4, founders=0, initial_food_share=0.0)
+        (lx, ly), (rx, ry) = adjacent_land(engine)
+        own, left = engine.world.index(rx, ry), engine.world.index(lx, ly)
+        cap = engine.world.config.food_cap
+        engine.world.food[own] = cap
+        engine.world.food[left] = cap
+        grazer = engine.spawn(
+            staged_genome(size=0.2, diet=0.0, curiosity=0.0, social=0.0, speed=0.0),
+            rx, ry, energy=20.0,
+        )
+        engine.step()
+        self.assertEqual((grazer.x, grazer.y), (rx, ry))
+        self.assertLess(engine.world.food[own], cap)
 
     def test_attack_kills_a_weaker_neighbour_and_feeds_the_hunter(self):
         engine = small_engine(3, founders=0)
@@ -129,6 +144,29 @@ class BehaviourTests(unittest.TestCase):
         self.assertGreater(len(engine.creatures), 2)
         for creature in engine.creatures:
             self.assertEqual(len(creature.genome.genes), GENE_COUNT)
+
+
+class SpeciesIntegrationTests(unittest.TestCase):
+    def test_founders_start_as_one_species(self):
+        engine = small_engine(4)
+        self.assertEqual(len(engine.registry), 1)
+        self.assertTrue(all(creature.species == 1 for creature in engine.creatures))
+
+    def test_census_populates_the_fossil_record(self):
+        engine = small_engine(4)
+        for _ in range(20):
+            engine.step()
+        trace = engine.fossil.traces[1]
+        self.assertEqual(trace.first_seen, 0)
+        self.assertGreaterEqual(trace.peak_population, 1)
+        self.assertGreaterEqual(trace.last_seen, 1)
+
+    def test_drift_grows_the_registry_over_time(self):
+        engine = small_engine(4)
+        for _ in range(600):
+            engine.step()
+        self.assertGreaterEqual(len(engine.registry), 2)
+        self.assertGreaterEqual(engine.fossil.speciations, 1)
 
 
 class PerformanceTests(unittest.TestCase):

@@ -5,7 +5,7 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792354512.4683905
+    "updated_at": 1792355237.5245411
   },
   "checkpoints": [
     {
@@ -53,6 +53,26 @@
       "status": "in_progress",
       "timestamp": 1792354512.4683905,
       "timestamp_str": "2026-10-18 23:15:12"
+    },
+    {
+      "task_id": "task-primordia-core-v1",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[3/6] Implementing phenetic species classification (distance to founding genomes, monotone lineage ids), the fossil record (first/last sightings, peaks, extinction events, bounded log) and population analytics; founders become near-clones of one ancestral lineage so speciation is observable; failing-first tests for registry, fossil census and engine integration.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792354582.934591,
+      "timestamp_str": "2026-10-18 23:16:22"
+    },
+    {
+      "task_id": "task-primordia-core-v1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/6] Species and fossil record complete: phenetic SpeciesRegistry (nearest founding genome within SPECIATION_DISTANCE 0.18, monotone tree ids carrying ancestors), FossilRecord (per-species traces, bounded event log, monotone counters) and analytics; founders are one ancestral species (survivable template plus jitter); two repairs the integration forced: standing biomass at world start and travel-discounted forage (fixed the herding die-off). 53/53 tests in 0.9s; default world holds 90-190 creatures to t=4000 across six seeds with 15-100 species; determinism at scale holds; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792355237.5245411,
+      "timestamp_str": "2026-10-18 23:27:17"
     }
   ]
 }

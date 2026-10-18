@@ -3,3 +3,7 @@
 .aikit/*.bak
 .aikit/*.tmp_*
 .aikit/*.corrupt_*
+
+# Python caches
+__pycache__/
+*.pyc

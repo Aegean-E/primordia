@@ -1,9 +1,10 @@
 """Primordia's world: the tile grid, its food layer and its drifting temperature field.
 
-The world owns three flat per-tile layers: immutable terrain, a food layer that regrows
-toward a cap, and a temperature field that advances with the season and varies by latitude
-and a per-tile phase offset. The engine reads the layers; only the engine mutates them
-through `take_food`/`add_food`, so every quantity stays in its declared range.
+The world owns three flat per-tile layers: immutable terrain, a food layer that starts as
+standing biomass and regrows toward a cap, and a temperature field that advances with the
+season and varies by latitude and a per-tile phase offset. The engine reads the layers; only
+the engine mutates them through `take_food`/`add_food`, so every quantity stays in its declared
+range.
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ class WorldConfig:
     height: int = 18
     food_cap: float = 10.0
     food_regrowth: float = 0.12
+    initial_food_share: float = 0.5
     day_length: int = 400
     water_ratio: float = 0.12
     temperature_swing: float = 0.30
@@ -42,7 +44,8 @@ class World:
             WATER if rng.random() < config.water_ratio else LAND for _ in range(size)
         ]
         self.phase: List[float] = [rng.random() * TWO_PI for _ in range(size)]
-        self.food: List[float] = [0.0] * size
+        standing = config.food_cap * config.initial_food_share
+        self.food: List[float] = [standing if tile == LAND else 0.0 for tile in self.terrain]
         self.temperature: List[float] = [0.0] * size
 
     @property

@@ -4,8 +4,9 @@ Primordia is a zero-dependency evolution sandbox: seed a biosphere, run its cloc
 genomes vary, compete and speciate. A run replays exactly from its seed, and a fossil record
 keeps the story of what happened.
 
-> **Status**: milestone 2 of 6 - the genome model, the world and the deterministic engine are
-> in place; the species classifier, the CLI and the web observatory arrive in the next milestones.
+> **Status**: milestone 3 of 6 - the genome model, the world, the deterministic engine, the
+> species classifier and the fossil record are in place; persistence, the CLI and the web
+> observatory arrive in the next milestones.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -28,19 +29,25 @@ keeps the story of what happened.
 ```text
 primordia/
 ├── .aikit/                   <- project memory: record, ledger, decisions, map
-├── .gitignore                <- transient AIKit state excluded
+├── .gitignore                <- transient AIKit state and Python caches excluded
 ├── README.md
 ├── pyproject.toml            <- build and package configuration
 ├── primordia/                <- core package
 │   ├── __init__.py           <- package metadata
+│   ├── analytics.py          <- population statistics: counts by species, mean traits
 │   ├── creature.py           <- one genome plus the engine's mutable per-tick state
 │   ├── engine.py             <- the deterministic tick loop
+│   ├── fossil.py             <- the fossil record: sightings, peaks and events per species
 │   ├── genome.py             <- bounded genes and variation operators
+│   ├── species.py            <- phenetic species: genomes cluster by genetic distance
 │   └── world.py              <- tile grid, food layer and temperature field
 └── tests/                    <- unit test suite
     ├── __init__.py
+    ├── test_analytics.py     <- species counts and trait means
     ├── test_engine.py        <- determinism, invariants and behavioural mechanics
+    ├── test_fossil.py        <- censuses, extinction and the bounded event log
     ├── test_genome.py        <- gene bounds, mutation, crossover and distance
+    ├── test_species.py       <- classification, ancestry and monotone species ids
     └── test_world.py         <- terrain, food and temperature
 ```
 
@@ -67,21 +74,37 @@ injected `random.Random`, so `same seed => same history` is a contract the tests
 
 ## 🌍 The World & The Engine
 
-The world is a tile grid of land and water. Every land tile carries a food layer that regrows
-with the season (each tile on its own phase, so booms and famines travel across the map) and a
-temperature field that drifts between a north-south gradient and the seasonal sine.
+The world is a tile grid of land and water. Every land tile carries a food layer that starts as
+standing biomass, then regrows with the season (each tile on its own phase, so booms and famines
+travel across the map), under a temperature field that drifts between a north-south gradient and
+the seasonal sine.
 
 One engine tick is one fixed sequence: the world updates first, then every creature acts in
 ascending cid order. A creature pays upkeep (size, speed, metabolism, temperature mismatch),
 ages, and either forages while it is below breeding condition - hunting the weakest reachable
-weaker neighbour when its genes allow, otherwise grazing the richest tile it can sense - or
-reproduces when a compatible mate is near, or wanders. Attacks are softened by a comparable
-body (armor), movement is one tile per stride with a second stride rolled against speed, and a
-dead body returns to the soil as food for the next generation.
+weaker neighbour when its genes allow, otherwise grazing the best tile it can sense, its stock
+discounted by the walk, so it grazes where it stands when local food is good instead of herding
+onto one maximum - or reproduces when a compatible mate is near, or wanders. Attacks are
+softened by a comparable body (armor), movement is one tile per stride with a second stride
+rolled against speed, and a dead body returns to the soil as food for the next generation.
 
 Determinism is the contract: every random draw comes from one seeded `random.Random` in a fixed
 order, so the same seed replays the same history exactly - a property the suite checks by
 comparing state hashes after identical runs.
+
+## 🦕 Species & The Fossil Record
+
+A species is phenetic: the registry keeps each lineage's founding genome, and a new genome joins
+the nearest species when it lies within `SPECIATION_DISTANCE` of that founder; beyond it, the
+drifting lineage founds a new species and names its ancestor. Species never merge, so ids stay
+monotone and the record is a tree. The founders themselves are one ancestral species - a
+template drawn from the survivable ranges of the cost genes, jittered per founder - so evolution
+starts with real variance inside one lineage.
+
+Each tick the engine censuses the living population. The fossil record keeps one trace per
+species (first and last seen, peak population, extinction tick) plus a bounded event log of
+speciations and extinctions; the counters stay monotone even when the window forgets an old
+event, so a long run costs bounded memory and still tells its whole story.
 
 ## 🧪 Development
 
@@ -91,7 +114,10 @@ The unit suite runs with:
 python -m unittest discover
 ```
 
-37 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
-operators; terrain, food, growth and temperature invariants for the world; and for the engine,
+53 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
+operators; terrain, standing biomass, growth and temperature invariants for the world;
+classification, ancestry and monotone ids for the species registry; censuses, extinction and
+the bounded event log for the fossil record; population statistics; and for the engine,
 byte-identical replays of the same seed, world and creature invariants over long runs, staged
-grazing and hunting mechanics, armored-defense arithmetic, and a performance smoke test.
+grazing and hunting mechanics, armored-defense arithmetic, a drift-to-speciation run and a
+performance smoke test.

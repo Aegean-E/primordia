@@ -3,8 +3,11 @@
 One `random.Random` drives every draw in a fixed order, so a seed plus a tick count replays
 the same history exactly, and `snapshot_hash` proves it. Each tick, the world updates first;
 then every creature acts in ascending cid order: it pays upkeep and ages, forages until it can
-afford a litter (hunting if its genes allow, otherwise grazing the richest tile in sight),
+afford a litter (hunting if its genes allow, otherwise grazing the best tile in sight, its
+stock discounted by the walk),
 reproduces when a mate is near, and wanders otherwise. Dead bodies return to the soil as food.
+Births are classified into species by distance from the founding genomes, and a census each tick
+keeps the fossil record honest.
 """
 
 from __future__ import annotations
@@ -13,13 +16,25 @@ import hashlib
 import random
 from typing import Dict, List, Optional, Tuple
 
+from primordia.analytics import species_counts
 from primordia.creature import Creature
-from primordia.genome import Genome, crossover, genetic_distance, mutate, random_genome
+from primordia.fossil import FossilRecord
+from primordia.genome import GENES, Genome, crossover, genetic_distance, mutate
+from primordia.species import SpeciesRegistry
 from primordia.world import LAND, World, WorldConfig
 
-# Life budget
+# Life budget: founders are sampled around one ancestral template drawn from the survivable
+# ranges of the cost genes, so the lineage starts as a single species that can persist.
 START_ENERGY = 45.0
-FOUNDER_DIET_CAP = 0.35
+FOUNDER_JITTER = 0.15
+FOUNDER_BASE_RANGES = {
+    "metabolism": (0.45, 1.00),
+    "size": (0.05, 0.60),
+    "speed": (0.00, 0.55),
+    "sense": (0.20, 0.80),
+    "thermophily": (0.10, 0.85),
+    "diet": (0.00, 0.35),
+}
 # Upkeep: paid every tick, scaled by body and habits; temperature mismatch costs extra.
 UPKEEP_BASE = 0.10
 UPKEEP_SIZE = 0.06
@@ -36,7 +51,10 @@ STRIDE_CHANCE_PER_SPEED = 0.60
 SENSE_RADIUS_BASE = 1
 SENSE_RADIUS_GAIN = 3
 # Foraging: falling below breeding condition opens the food search; grazing scales with
-# herbivory, hunting with size.
+# herbivory, hunting with size. A tile is valued as stock minus a travel cost per step, so
+# creatures graze where they stand when local food is good and never herd onto one maximum.
+FORAGE_MIN_VALUE = 0.0
+FORAGE_DISTANCE_COST = 0.35
 GRAZE_BITE_BASE = 1.10
 GRAZE_BITE_SIZE = 1.90
 HUNT_AGGRESSION_MIN = 0.35
@@ -74,6 +92,8 @@ class Engine:
         self.seed = seed
         self.rng = random.Random(seed)
         self.world = World(config, self.rng)
+        self.registry = SpeciesRegistry()
+        self.fossil = FossilRecord()
         self.tick = 0
         self.next_cid = 1
         self.creatures: List[Creature] = []
@@ -84,7 +104,10 @@ class Engine:
         """Place one creature on a land tile; the door tests and tools stage a known state with."""
         if not self.world.is_land(x, y):
             raise ValueError(f"({x}, {y}) is not a land tile; creatures live on land only")
-        creature = self._new_creature(genome, x, y, energy)
+        species_id, is_new = self.registry.classify(genome, self.tick)
+        if is_new and species_id > 1:
+            self.fossil.record_speciation(self.tick, species_id, ancestor=0, detail="introduced")
+        creature = self._new_creature(genome, x, y, energy, species_id)
         self.creatures.append(creature)
         return creature
 
@@ -101,6 +124,7 @@ class Engine:
                 self._die(creature)
         self.creatures = [creature for creature in self.creatures if creature.alive]
         self.creatures.extend(newborns)
+        self.fossil.census(species_counts(self.creatures), self.tick)
         self.tick += 1
 
     def snapshot_hash(self) -> str:
@@ -109,24 +133,31 @@ class Engine:
         digest.update(f"tick={self.tick};next={self.next_cid};".encode("ascii"))
         for creature in self.creatures:
             digest.update(f"{creature.cid}|{creature.x}|{creature.y}|{creature.age}"
-                          f"|{creature.energy!r}|{creature.genome.genes!r}|".encode("ascii"))
+                          f"|{creature.species}|{creature.energy!r}"
+                          f"|{creature.genome.genes!r}|".encode("ascii"))
         for value in self.world.food:
             digest.update(f"{value!r};".encode("ascii"))
         return digest.hexdigest()
 
     def _found(self, founders: int) -> None:
-        """Seed the first population from random land tiles, biased toward grazing habits."""
+        """Seed one ancestral species: a viable template with per-founder jitter around it."""
+        template = tuple(
+            self.rng.uniform(*FOUNDER_BASE_RANGES.get(gene.name, (gene.low, gene.high)))
+            for gene in GENES
+        )
         land_tiles = [tile for tile in range(self.world.length)
                       if self.world.terrain[tile] == LAND]
         self.rng.shuffle(land_tiles)
         for tile in land_tiles[:max(0, min(founders, len(land_tiles)))]:
-            data = random_genome(self.rng).as_dict()
-            data["diet"] = self.rng.uniform(0.0, FOUNDER_DIET_CAP)
+            genes = tuple(min(1.0, max(0.0, value + self.rng.uniform(-FOUNDER_JITTER, FOUNDER_JITTER)))
+                          for value in template)
             x, y = self.world.xy(tile)
-            self.spawn(Genome.from_dict(data), x, y)
+            self.spawn(Genome(genes=genes), x, y)
 
-    def _new_creature(self, genome: Genome, x: int, y: int, energy: float) -> Creature:
-        creature = Creature(cid=self.next_cid, genome=genome, x=x, y=y, energy=energy)
+    def _new_creature(self, genome: Genome, x: int, y: int, energy: float,
+                      species_id: int) -> Creature:
+        creature = Creature(cid=self.next_cid, genome=genome, x=x, y=y, energy=energy,
+                            species=species_id)
         self.next_cid += 1
         return creature
 
@@ -249,7 +280,11 @@ class Engine:
                 base = crossover(parents[0].genome, parents[1].genome, self.rng)
             else:
                 base = parent.genome
-            children.append(self._new_creature(mutate(base, self.rng), parent.x, parent.y, share))
+            genome = mutate(base, self.rng)
+            species_id, is_new = self.registry.classify(genome, self.tick, ancestor=parent.species)
+            if is_new:
+                self.fossil.record_speciation(self.tick, species_id, ancestor=parent.species)
+            children.append(self._new_creature(genome, parent.x, parent.y, share, species_id))
         return children
 
     def _wander(self, creature: Creature, buckets: Dict[int, List[Creature]]) -> None:
@@ -305,8 +340,14 @@ class Engine:
         return self.rng.choice(candidates) if candidates else None
 
     def _richest_tile(self, creature: Creature, radius: int) -> Optional[Tuple[int, int]]:
+        """The most valuable tile in sight: its stock minus a travel cost per step of distance.
+
+        Local stock competes on fair terms with distant plenty, so a creature grazes where it
+        stands when the yield is comparable and only walks when the walk pays. Tiles that do
+        not repay the trip are ignored, and a barren neighbourhood sends its owner wandering.
+        """
         best: Optional[Tuple[int, int]] = None
-        best_food = 0.0
+        best_value = FORAGE_MIN_VALUE
         y_min = max(0, creature.y - radius)
         y_max = min(self.config.height - 1, creature.y + radius)
         x_min = max(0, creature.x - radius)
@@ -316,8 +357,10 @@ class Engine:
                 tile = self.world.index(x, y)
                 if self.world.terrain[tile] != LAND:
                     continue
-                if self.world.food[tile] > best_food:
-                    best_food = self.world.food[tile]
+                distance = max(abs(x - creature.x), abs(y - creature.y))
+                value = self.world.food[tile] - FORAGE_DISTANCE_COST * distance
+                if value > best_value:
+                    best_value = value
                     best = (x, y)
         return best
 
