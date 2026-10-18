@@ -20,12 +20,13 @@ from typing import Any, Callable, Dict, List, Optional
 from primordia import shocks
 from primordia.analytics import species_counts, trait_means
 from primordia.engine import Engine
-from primordia.save import dump_text
+from primordia.save import SaveError, dump_text
 from primordia.world import LAND
 
 MAX_STEP_PER_REQUEST = 2000
 MAX_POST_BYTES = 4096
 RECENT_EVENTS = 20
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
 
 _STYLE = """
 :root { color-scheme: dark; }
@@ -221,8 +222,13 @@ def make_handler(engine: Engine, lock: threading.Lock, quiet: bool = False) -> t
 
         def do_POST(self) -> None:
             parsed = urllib.parse.urlparse(self.path)
-            length = min(int(self.headers.get("Content-Length") or 0), MAX_POST_BYTES)
-            fields = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
+            try:
+                length = _content_length(self.headers.get("Content-Length"))
+                fields = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
+            except ValueError as error:
+                self.close_connection = True
+                self._send_page(400, _error_page(str(error)))
+                return
             with lock:
                 try:
                     report = _apply_god(engine, parsed.path, fields)
@@ -264,9 +270,20 @@ def serve(engine: Engine, host: str = "127.0.0.1", port: int = 8000,
           out: Optional[Callable[[str], None]] = None) -> int:
     """Run the observatory until interrupted; returns the exit code 0."""
     emit = print if out is None else out
-    server = make_server(engine, host, port)
+    try:
+        server = make_server(engine, host, port)
+    except (OSError, OverflowError) as error:
+        raise SaveError(
+            f"could not open the observatory on {host}:{port}",
+            why=f"the operating system refused that address ({error})",
+            fix="choose another port, for example --port 8001, or let the system pick"
+                " a free one with --port 0",
+        ) from error
     bound_host, bound_port = server.server_address[:2]
     emit(f"observatory at http://{bound_host}:{bound_port} (ctrl-c stops)")
+    if str(bound_host).lower() not in LOOPBACK_HOSTS:
+        emit("warning: the observatory has no authentication; anyone who can reach"
+             " this address can step the world and fire god-mode shocks")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -290,6 +307,21 @@ def _apply_god(engine: Engine, path: str, fields: Dict[str, List[str]]) -> shock
     if path == "/god/introduce":
         return shocks.introduce(engine, _field_int(fields, "count"))
     raise ValueError(f"unknown intervention: {path}")
+
+
+def _content_length(header: Optional[str]) -> int:
+    """Validate the declared body size before reading; a bad header is a 400, never a wait."""
+    if not header:
+        return 0
+    try:
+        length = int(header)
+    except ValueError:
+        raise ValueError("Content-Length must be a whole number") from None
+    if length < 0:
+        raise ValueError("Content-Length cannot be negative")
+    if length > MAX_POST_BYTES:
+        raise ValueError(f"the form body must be at most {MAX_POST_BYTES} bytes")
+    return length
 
 
 def _query_int(query: Dict[str, List[str]], name: str, default: int, low: int, high: int) -> int:

@@ -5,19 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792359854.7592018
+    "updated_at": 1792360081.99194
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-core-v1",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[2/6] Implementing the world (terrain, regrowing food layer, seasonal temperature field) and the deterministic engine (spatial hash, metabolism, grazing, hunting, reproduction, death); failing-first tests for world invariants, engine determinism and the behavioural mechanics.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792354286.046307,
-      "timestamp_str": "2026-10-18 23:11:26"
-    },
     {
       "task_id": "task-primordia-core-v1",
       "phase": "phase 4",
@@ -217,6 +207,16 @@
       "status": "in_progress",
       "timestamp": 1792359854.7592018,
       "timestamp_str": "2026-10-19 00:44:14"
+    },
+    {
+      "task_id": "task-primordia-fixes-v2",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/3] Web and CLI edges hardened: POST bodies declare a non-negative Content-Length within the 4 KiB cap or get the 400 Why/Fix page (no crash, no read-to-EOF hang); an out-of-range port or refused bind raises a SaveError that asks for another port; the web pre-roll is included in the session hash so --ticks changes persist on exit while a bare view leaves the save untouched; a bind beyond loopback prints a no-authentication warning. 7 new failing-first tests; 106/106 tests in 2.5s; 4/4 gates; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792360081.99194,
+      "timestamp_str": "2026-10-19 00:48:01"
     }
   ]
 }

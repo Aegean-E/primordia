@@ -1,18 +1,20 @@
 """Unit tests for the observatory: state payload, dashboard, god-mode shocks and the server."""
 
 import json
+import socket
 import threading
 import unittest
 import urllib.error
 import urllib.parse
 import urllib.request
+from unittest import mock
 
 from primordia import shocks
 from primordia.engine import Engine
 from primordia.genome import GENES, Genome, genetic_distance
-from primordia.save import SAVE_VERSION
+from primordia.save import SAVE_VERSION, SaveError
 from primordia.species import SPECIATION_DISTANCE
-from primordia.web import make_server, render_dashboard, state_payload
+from primordia.web import make_server, render_dashboard, serve, state_payload
 from primordia.world import LAND, WorldConfig
 
 
@@ -216,6 +218,45 @@ class HttpSmokeTests(unittest.TestCase):
             pass
         self.assertEqual(self.engine.tick, before + 5)
 
+    def test_a_malformed_content_length_is_refused_with_the_400_page(self):
+        response = self._raw_post(b"Content-Length: not-a-number")
+        self.assertIn("400", response.splitlines()[0])
+        self.assertIn("Why:", response)
+        self.assertIn("Fix:", response)
+        with urllib.request.urlopen(self.base + "/state.json", timeout=5) as reply:
+            self.assertEqual(reply.status, 200)
+
+    def test_a_negative_content_length_is_refused_instead_of_read_to_eof(self):
+        response = self._raw_post(b"Content-Length: -5")
+        self.assertIn("400", response.splitlines()[0])
+        self.assertIn("Why:", response)
+        self.assertIn("Fix:", response)
+
+    def _raw_post(self, header: bytes) -> str:
+        host, port = self.server.server_address[:2]
+        request = (b"POST /god/cull HTTP/1.1\r\nHost: observatory\r\n"
+                   + header + b"\r\n\r\n")
+        with socket.create_connection((host, port), timeout=5) as connection:
+            connection.sendall(request)
+            reply = b""
+            while b"\r\n\r\n" not in reply:
+                chunk = connection.recv(8192)
+                if not chunk:
+                    break
+                reply += chunk
+            head, _, body = reply.partition(b"\r\n\r\n")
+            length = 0
+            for line in head.split(b"\r\n"):
+                name, _, value = line.partition(b":")
+                if name.strip().lower() == b"content-length":
+                    length = int(value.strip())
+            while len(body) < length:
+                chunk = connection.recv(8192)
+                if not chunk:
+                    break
+                body += chunk
+            return (head + b"\r\n\r\n" + body).decode("utf-8", errors="replace")
+
     def test_god_mode_form_mutates_the_world(self):
         before = len(self.engine.creatures)
         data = urllib.parse.urlencode({"share": "0.5"}).encode("utf-8")
@@ -223,3 +264,32 @@ class HttpSmokeTests(unittest.TestCase):
         with urllib.request.urlopen(request, timeout=5):
             pass
         self.assertLess(len(self.engine.creatures), before)
+
+
+class ServeTests(unittest.TestCase):
+    def test_an_impossible_port_raises_a_save_error_asking_for_another(self):
+        engine = small_engine(founders=0)
+        with self.assertRaises(SaveError) as caught:
+            serve(engine, port=70000, out=lambda line: None)
+        message = str(caught.exception)
+        self.assertIn("Why:", message)
+        self.assertIn("Fix:", message)
+        self.assertIn("port", message.lower())
+
+    def test_a_public_bind_warns_that_there_is_no_authentication(self):
+        lines = []
+        fake_server = mock.Mock()
+        fake_server.server_address = ("0.0.0.0", 8000)
+        with mock.patch("primordia.web.make_server", return_value=fake_server):
+            serve(small_engine(founders=0), host="0.0.0.0", port=8000, out=lines.append)
+        warning = "\n".join(lines).lower()
+        self.assertIn("authentication", warning)
+        fake_server.server_close.assert_called_once()
+
+    def test_a_loopback_bind_stays_quiet(self):
+        lines = []
+        fake_server = mock.Mock()
+        fake_server.server_address = ("127.0.0.1", 8000)
+        with mock.patch("primordia.web.make_server", return_value=fake_server):
+            serve(small_engine(founders=0), host="127.0.0.1", port=8000, out=lines.append)
+        self.assertNotIn("authentication", "\n".join(lines).lower())

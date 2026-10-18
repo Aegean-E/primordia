@@ -4,6 +4,7 @@ import io
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from primordia import __version__
 from primordia.cli import _persist_session, main
@@ -96,4 +97,19 @@ class CliTests(unittest.TestCase):
         engine = load_from(self.path)
         out = io.StringIO()
         self.assertFalse(_persist_session(engine, self.path, engine.snapshot_hash(), out))
+        self.assertEqual(Path(self.path).stat().st_mtime_ns, before)
+
+    def test_a_web_pre_roll_is_persisted_when_the_observatory_exits(self):
+        self.run_cli(["run", "--seed", "5", "--ticks", "20", "--save", self.path])
+        with mock.patch("primordia.web.serve", return_value=0):
+            code, out, err = self.run_cli(["web", self.path, "--ticks", "5"])
+        self.assertEqual(code, 0, err)
+        self.assertEqual(load_from(self.path).tick, 25)
+
+    def test_a_bare_web_view_leaves_the_save_untouched(self):
+        self.run_cli(["run", "--seed", "5", "--ticks", "20", "--save", self.path])
+        before = Path(self.path).stat().st_mtime_ns
+        with mock.patch("primordia.web.serve", return_value=0):
+            code, out, err = self.run_cli(["web", self.path])
+        self.assertEqual(code, 0, err)
         self.assertEqual(Path(self.path).stat().st_mtime_ns, before)

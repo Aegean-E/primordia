@@ -7,9 +7,9 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
-- **Total Classes**: `43`
-- **Total Functions / Methods**: `66`
-- **Total Source Lines**: `2970`
+- **Total Classes**: `44`
+- **Total Functions / Methods**: `67`
+- **Total Source Lines**: `3088`
 
 ---
 
@@ -215,7 +215,7 @@
 ### [`primordia/web.py`](primordia/web.py)
 > *The observatory: a local web view of a running world, with god-mode interventions.*
 
-**Size**: `337` lines (`15518` bytes)
+**Size**: `369` lines (`16891` bytes)
 
 **Functions:**
 - `def state_payload(engine)` - *The observable facts of one world, as JSON-ready data.*
@@ -226,6 +226,7 @@
 - `def make_server(engine, host, port, quiet)` - *A server for `engine` on `(host, port)`; port 0 picks a free one.*
 - `def serve(engine, host, port, out)` - *Run the observatory until interrupted; returns the exit code 0.*
 - `def _apply_god(engine, path, fields)` - *Map one god-mode POST path onto a shock; bad input raises ValueError.*
+- `def _content_length(header)` - *Validate the declared body size before reading; a bad header is a 400, never a wait.*
 - `def _query_int(query, name, default, low, high)`
 - `def _field_int(fields, name)`
 - `def _field_float(fields, name, default)`
@@ -273,7 +274,7 @@
 ### [`tests/test_cli.py`](tests/test_cli.py)
 > *Unit tests for the command line: run, resume, stats and the interactive shell.*
 
-**Size**: `99` lines (`4286` bytes)
+**Size**: `115` lines (`5140` bytes)
 
 **Classes:**
 - `class CliTests`
@@ -291,6 +292,8 @@
   - Method `.test_repl_refuses_zero_row_listings()`
   - Method `.test_the_observatory_persists_session_changes_back_to_its_save()`
   - Method `.test_an_untouched_observatory_leaves_its_save_alone()`
+  - Method `.test_a_web_pre_roll_is_persisted_when_the_observatory_exits()`
+  - Method `.test_a_bare_web_view_leaves_the_save_untouched()`
 
 ---
 
@@ -432,7 +435,7 @@
 ### [`tests/test_web.py`](tests/test_web.py)
 > *Unit tests for the observatory: state payload, dashboard, god-mode shocks and the server.*
 
-**Size**: `225` lines (`9585` bytes)
+**Size**: `295` lines (`12733` bytes)
 
 **Classes:**
 - `class PayloadTests`
@@ -460,7 +463,14 @@
   - Method `.test_favicon_is_answered_quietly()`
   - Method `.test_an_oversized_form_body_is_refused()`
   - Method `.test_step_query_advances_the_clock()`
+  - Method `.test_a_malformed_content_length_is_refused_with_the_400_page()`
+  - Method `.test_a_negative_content_length_is_refused_instead_of_read_to_eof()`
+  - Method `._raw_post(header)`
   - Method `.test_god_mode_form_mutates_the_world()`
+- `class ServeTests`
+  - Method `.test_an_impossible_port_raises_a_save_error_asking_for_another()`
+  - Method `.test_a_public_bind_warns_that_there_is_no_authentication()`
+  - Method `.test_a_loopback_bind_stays_quiet()`
 
 **Functions:**
 - `def small_engine(seed, founders, **overrides)`

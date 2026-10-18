@@ -128,8 +128,8 @@ def _web(args: argparse.Namespace, out: TextIO) -> int:
     from primordia.web import serve
 
     engine = load_from(args.path) if args.path else Engine(seed=args.seed)
-    _advance(engine, args.ticks)
     start_hash = engine.snapshot_hash()
+    _advance(engine, args.ticks)
     code = serve(engine, args.host, args.port,
                  out=lambda line: print(line, file=out, flush=True))
     _persist_session(engine, args.path, start_hash, out)
