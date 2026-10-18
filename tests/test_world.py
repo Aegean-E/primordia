@@ -121,3 +121,34 @@ class ConfigValidationTests(unittest.TestCase):
             with self.subTest(overrides=overrides):
                 with self.assertRaises(ValueError):
                     WorldConfig(**overrides)
+
+    def test_non_integer_shapes_and_paces_are_refused(self):
+        cases = (
+            {"width": 1.5},
+            {"width": True},
+            {"height": "18"},
+            {"day_length": 1.5},
+            {"day_length": "400"},
+        )
+        for overrides in cases:
+            with self.subTest(overrides=overrides):
+                with self.assertRaises(ValueError):
+                    WorldConfig(**overrides)
+
+    def test_non_finite_and_wrong_typed_numbers_are_refused(self):
+        cases = (
+            {"food_cap": float("nan")},
+            {"food_cap": float("inf")},
+            {"food_cap": "ten"},
+            {"food_regrowth": float("nan")},
+            {"food_regrowth": "fast"},
+            {"temperature_swing": float("nan")},
+            {"temperature_swing": None},
+            {"season_amplitude": float("inf")},
+            {"water_ratio": float("nan")},
+            {"initial_food_share": float("nan")},
+        )
+        for overrides in cases:
+            with self.subTest(overrides=overrides):
+                with self.assertRaises(ValueError):
+                    WorldConfig(**overrides)

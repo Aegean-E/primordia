@@ -154,6 +154,14 @@ class BehaviourTests(unittest.TestCase):
         self.assertLess(engine.world.food[tile], 4.0)
         self.assertGreater(grazer.energy, 20.5)
 
+    def test_spawn_refuses_non_finite_or_negative_energy(self):
+        engine = small_engine(2, founders=0)
+        x, y = land_tile(engine)
+        for energy in (float("nan"), float("inf"), -1.0):
+            with self.subTest(energy=energy):
+                with self.assertRaises(ValueError):
+                    engine.spawn(staged_genome(), x, y, energy=energy)
+
     def test_grazer_grazes_where_it_stands_instead_of_marching_to_equal_stock(self):
         engine = small_engine(4, founders=0, initial_food_share=0.0)
         (lx, ly), (rx, ry) = adjacent_land(engine)

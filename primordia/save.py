@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import math
 import os
 import time
 from dataclasses import asdict
@@ -43,7 +44,7 @@ class SaveError(Exception):
 
 def dump_text(engine: Engine) -> str:
     """The engine's full state as the compact JSON text `save_to` writes."""
-    return json.dumps(_engine_to_data(engine), separators=(",", ":"))
+    return json.dumps(_engine_to_data(engine), separators=(",", ":"), allow_nan=False)
 
 
 def save_to(engine: Engine, path: Union[str, Path]) -> Path:
@@ -55,7 +56,14 @@ def save_to(engine: Engine, path: Union[str, Path]) -> Path:
             why="that path is a folder, and a folder cannot be replaced by a file",
             fix="choose a file path inside the folder, for example `run.json`",
         )
-    payload = dump_text(engine)
+    try:
+        payload = dump_text(engine)
+    except (TypeError, ValueError) as error:
+        raise SaveError(
+            f"could not write the save to {path}",
+            why=f"the run holds a value that JSON cannot store ({error})",
+            fix="remove the non-finite value or start a new run; the existing save is untouched",
+        ) from error
     temp = path.with_name(path.name + f".tmp_{os.getpid()}")
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -86,7 +94,7 @@ def load_from(path: Union[str, Path]) -> Engine:
         if backup.exists():
             try:
                 engine = _engine_from_data(_read_json(backup))
-            except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+            except (json.JSONDecodeError, KeyError, TypeError, ValueError, OSError, SaveError):
                 engine = None
             if engine is not None:
                 save_to(engine, path)
@@ -128,7 +136,7 @@ def load_from(path: Union[str, Path]) -> Engine:
         if backup.exists():
             try:
                 engine = _engine_from_data(_read_json(backup))
-            except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+            except (json.JSONDecodeError, KeyError, TypeError, ValueError, OSError, SaveError):
                 engine = None
             if engine is not None:
                 save_to(engine, path)
@@ -270,7 +278,80 @@ def _engine_from_data(data: Dict[str, Any]) -> Engine:
     state = data["rng"]
     engine.rng.setstate((int(state["version"]), tuple(int(word) for word in state["state"]),
                          state["gauss_next"]))
+    _verify_engine(engine)
     return engine
+
+
+def _verify_engine(engine: Engine) -> None:
+    """Reject a parseable but inconsistent snapshot before any tick can crash on it."""
+    width, height = engine.config.width, engine.config.height
+    length = width * height
+    for name in ("terrain", "phase", "food", "temperature"):
+        layer = getattr(engine.world, name)
+        if len(layer) != length:
+            raise ValueError(
+                f"the {name} layer holds {len(layer)} tiles but the world needs {length}")
+    if any(tile not in (0, 1) for tile in engine.world.terrain):
+        raise ValueError("the terrain layer holds a value that is neither land nor water")
+    if any(not math.isfinite(value) for value in engine.world.phase):
+        raise ValueError("the season phase layer holds a non-finite value")
+    if any(not math.isfinite(value) or value < 0.0 or value > engine.config.food_cap
+           for value in engine.world.food):
+        raise ValueError("the food layer holds a value outside [0, food_cap]")
+    if any(not math.isfinite(value) or not 0.0 <= value <= 1.0
+           for value in engine.world.temperature):
+        raise ValueError("the temperature layer holds a value outside [0, 1]")
+    if not 0 <= engine.tick or engine.next_cid < 1:
+        raise ValueError("the snapshot has a negative tick or a non-positive next cid")
+    seen = set()
+    for creature in engine.creatures:
+        if creature.cid in seen:
+            raise ValueError(f"creature id {creature.cid} appears twice")
+        seen.add(creature.cid)
+        if not 1 <= creature.cid < engine.next_cid:
+            raise ValueError(f"creature id {creature.cid} is not below next_cid {engine.next_cid}")
+        if not (0 <= creature.x < width and 0 <= creature.y < height):
+            raise ValueError(f"creature {creature.cid} is outside the {width}x{height} world")
+        if not engine.world.is_land(creature.x, creature.y):
+            raise ValueError(f"creature {creature.cid} stands on a water tile")
+        if not math.isfinite(creature.energy) or creature.energy < 0.0:
+            raise ValueError(f"creature {creature.cid} holds invalid energy")
+        if not 1 <= creature.species <= len(engine.registry):
+            raise ValueError(
+                f"creature {creature.cid} names species {creature.species}, which is not recorded")
+    for index in range(1, len(engine.registry) + 1):
+        record = engine.registry.get(index)
+        if record.species_id != index:
+            raise ValueError(f"species row {index} carries id {record.species_id}")
+        if not 0 <= record.birth_tick <= engine.tick:
+            raise ValueError(f"species {index} has an impossible birth tick")
+        if not 0 <= record.ancestor < index:
+            raise ValueError(f"species {index} names an impossible ancestor")
+    _verify_fossil(engine.fossil, len(engine.registry))
+
+
+def _verify_fossil(fossil: FossilRecord, species_total: int) -> None:
+    """Keep traces and events inside the registry and the declared event window."""
+    if fossil.event_cap < 0 or len(fossil.events) > fossil.event_cap:
+        raise ValueError("the fossil event log exceeds its declared capacity")
+    if fossil.speciations < 0 or fossil.extinctions < 0:
+        raise ValueError("the fossil counters cannot be negative")
+    for species_id, trace in fossil.traces.items():
+        if not 1 <= species_id <= species_total:
+            raise ValueError(f"the fossil record traces unknown species {species_id}")
+        if trace.species_id != species_id:
+            raise ValueError(f"fossil trace {species_id} carries a different id")
+        if min(trace.first_seen, trace.last_seen, trace.peak_population) < 0:
+            raise ValueError(f"fossil trace {species_id} holds a negative measure")
+        if trace.extinct_tick is not None and trace.extinct_tick < 0:
+            raise ValueError(f"fossil trace {species_id} has a negative extinction tick")
+    for event in fossil.events:
+        if not 1 <= event.species_id <= species_total:
+            raise ValueError(f"fossil event names unknown species {event.species_id}")
+        if event.kind not in ("speciation", "extinction"):
+            raise ValueError(f"fossil event has unknown kind {event.kind!r}")
+        if event.tick < 0:
+            raise ValueError("fossil event has a negative tick")
 
 
 def _creature_from(row: Dict[str, Any]) -> Creature:

@@ -100,6 +100,84 @@ class RoundTripTests(unittest.TestCase):
         self.assertEqual(resumed.snapshot_hash(), original.snapshot_hash())
 
 
+class SnapshotValidationTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.path = Path(self.temp.name) / "run.json"
+
+    def saved_data(self) -> dict:
+        engine = Engine(config=small_config(), seed=3, founders=10)
+        save_to(engine, self.path)
+        return json.loads(self.path.read_text(encoding="utf-8"))
+
+    def load_tampered(self, data: dict):
+        self.path.write_text(json.dumps(data), encoding="utf-8")
+        return load_from(self.path)
+
+    def assert_refused(self, data: dict) -> str:
+        with self.assertRaises(SaveError) as caught:
+            self.load_tampered(data)
+        message = str(caught.exception)
+        self.assertIn("Why:", message)
+        self.assertIn("Fix:", message)
+        return message
+
+    def test_a_short_terrain_layer_is_refused_before_the_tick_loop(self):
+        data = self.saved_data()
+        data["world"]["terrain"] = data["world"]["terrain"][:3]
+        self.assert_refused(data)
+
+    def test_a_short_food_layer_is_refused(self):
+        data = self.saved_data()
+        data["world"]["food"] = data["world"]["food"][:1]
+        self.assert_refused(data)
+
+    def test_an_out_of_bounds_creature_is_refused(self):
+        data = self.saved_data()
+        data["creatures"][0]["x"] = data["config"]["width"] + 5
+        self.assert_refused(data)
+
+    def test_a_creature_with_an_unknown_species_is_refused(self):
+        data = self.saved_data()
+        data["creatures"][0]["species"] = 99
+        self.assert_refused(data)
+
+    def test_a_creature_with_non_finite_energy_is_refused(self):
+        data = self.saved_data()
+        data["creatures"][0]["energy"] = float("nan")
+        self.assert_refused(data)
+
+    def test_a_missing_species_record_is_refused(self):
+        data = self.saved_data()
+        data["species"] = []
+        self.assert_refused(data)
+
+    def test_duplicate_creature_ids_are_refused(self):
+        data = self.saved_data()
+        data["creatures"][1]["cid"] = data["creatures"][0]["cid"]
+        self.assert_refused(data)
+
+    def test_saving_non_finite_state_is_a_save_error(self):
+        engine = Engine(config=small_config(), seed=3, founders=10)
+        engine.creatures[0].energy = float("nan")
+        with self.assertRaises(SaveError) as caught:
+            save_to(engine, self.path)
+        message = str(caught.exception)
+        self.assertIn("Why:", message)
+        self.assertIn("Fix:", message)
+        self.assertEqual(list(self.path.parent.glob("*.tmp_*")), [])
+
+    def test_a_directory_backup_is_unusable_instead_of_a_raw_oserror(self):
+        self.saved_data()
+        self.path.write_text("{broken", encoding="utf-8")
+        Path(str(self.path) + ".bak").mkdir()
+        with self.assertRaises(SaveError) as caught:
+            load_from(self.path)
+        self.assertIn("Why:", str(caught.exception))
+        self.assertIn("Fix:", str(caught.exception))
+
+
 class AtomicityTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

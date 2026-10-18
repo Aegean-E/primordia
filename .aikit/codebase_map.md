@@ -7,9 +7,9 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
-- **Total Classes**: `44`
-- **Total Functions / Methods**: `67`
-- **Total Source Lines**: `3156`
+- **Total Classes**: `45`
+- **Total Functions / Methods**: `71`
+- **Total Source Lines**: `3378`
 
 ---
 
@@ -78,7 +78,7 @@
 ### [`primordia/engine.py`](primordia/engine.py)
 > *The deterministic tick loop: metabolism, sensing, action, birth and death.*
 
-**Size**: `422` lines (`20236` bytes)
+**Size**: `428` lines (`20675` bytes)
 
 **Classes:**
 - `class Engine` - *The simulation: a world plus its creatures, advanced one deterministic tick at a time.*
@@ -153,7 +153,7 @@
 ### [`primordia/save.py`](primordia/save.py)
 > *Persistence: one versioned JSON snapshot carries a whole run across processes.*
 
-**Size**: `309` lines (`12425` bytes)
+**Size**: `390` lines (`17167` bytes)
 
 **Classes:**
 - `class SaveError` - *A save could not be read or written; the message carries Why and Fix lines.*
@@ -169,6 +169,8 @@
 - `def _read_json(path)`
 - `def _engine_to_data(engine)`
 - `def _engine_from_data(data)`
+- `def _verify_engine(engine)` - *Reject a parseable but inconsistent snapshot before any tick can crash on it.*
+- `def _verify_fossil(fossil, species_total)` - *Keep traces and events inside the registry and the declared event window.*
 - `def _creature_from(row)`
 - `def _species_from(row)`
 - `def _fossil_from(data)`
@@ -237,7 +239,7 @@
 ### [`primordia/world.py`](primordia/world.py)
 > *Primordia's world: the tile grid, its food layer and its drifting temperature field.*
 
-**Size**: `116` lines (`5074` bytes)
+**Size**: `134` lines (`5936` bytes)
 
 **Classes:**
 - `class WorldConfig` - *The world's shape and pace: fixed at creation and carried by every save.*
@@ -251,6 +253,10 @@
   - Method `.update(tick)` - *One tick of the world: the season drives food growth and the temperature field.*
   - Method `.take_food(index, amount)` - *Remove and return up to `amount` of food; a water tile holds none.*
   - Method `.add_food(index, amount)` - *Return nutrients to a land tile, never past the food cap.*
+
+**Functions:**
+- `def _require_int(name, value, minimum)` - *Refuse non-integer shapes and paces before they reach a range() or an index.*
+- `def _require_finite(name, value)` - *Refuse strings, NaN and infinity, which poison arithmetic without raising early.*
 
 ---
 
@@ -300,7 +306,7 @@
 ### [`tests/test_engine.py`](tests/test_engine.py)
 > *Unit tests for the engine: determinism, invariants and the behavioural mechanics.*
 
-**Size**: `247` lines (`10865` bytes)
+**Size**: `255` lines (`11235` bytes)
 
 **Classes:**
 - `class DeterminismTests`
@@ -319,6 +325,7 @@
   - Method `.test_a_newborn_joins_the_neighbour_buckets_at_its_parent()`
   - Method `.test_the_second_stride_stops_on_its_target()`
   - Method `.test_grazing_moves_energy_from_the_soil_to_the_grazer()`
+  - Method `.test_spawn_refuses_non_finite_or_negative_energy()`
   - Method `.test_grazer_grazes_where_it_stands_instead_of_marching_to_equal_stock()`
   - Method `.test_attack_kills_a_weaker_neighbour_and_feeds_the_hunter()`
   - Method `.test_armored_victim_takes_less_damage()`
@@ -391,7 +398,7 @@
 ### [`tests/test_save.py`](tests/test_save.py)
 > *Unit tests for persistence: exact round trips, atomic writes, backup fallback and quarantine.*
 
-**Size**: `202` lines (`9157` bytes)
+**Size**: `280` lines (`12140` bytes)
 
 **Classes:**
 - `class RoundTripTests`
@@ -402,6 +409,20 @@
   - Method `.test_a_newer_save_version_is_refused_without_quarantine()`
   - Method `.test_a_json_file_without_a_version_is_not_taken_for_a_save()`
   - Method `.test_a_shocked_world_round_trips_exactly()`
+- `class SnapshotValidationTests`
+  - Method `.setUp()`
+  - Method `.saved_data()`
+  - Method `.load_tampered(data)`
+  - Method `.assert_refused(data)`
+  - Method `.test_a_short_terrain_layer_is_refused_before_the_tick_loop()`
+  - Method `.test_a_short_food_layer_is_refused()`
+  - Method `.test_an_out_of_bounds_creature_is_refused()`
+  - Method `.test_a_creature_with_an_unknown_species_is_refused()`
+  - Method `.test_a_creature_with_non_finite_energy_is_refused()`
+  - Method `.test_a_missing_species_record_is_refused()`
+  - Method `.test_duplicate_creature_ids_are_refused()`
+  - Method `.test_saving_non_finite_state_is_a_save_error()`
+  - Method `.test_a_directory_backup_is_unusable_instead_of_a_raw_oserror()`
 - `class AtomicityTests`
   - Method `.setUp()`
   - Method `.test_overwriting_keeps_the_previous_save_as_a_backup()`
@@ -487,7 +508,7 @@
 ### [`tests/test_world.py`](tests/test_world.py)
 > *Unit tests for the world: terrain, the food layer and the temperature field.*
 
-**Size**: `123` lines (`4732` bytes)
+**Size**: `154` lines (`5863` bytes)
 
 **Classes:**
 - `class TerrainTests`
@@ -507,6 +528,8 @@
 - `class ConfigValidationTests`
   - Method `.test_the_default_config_is_valid()`
   - Method `.test_impossible_configs_are_refused_at_construction()`
+  - Method `.test_non_integer_shapes_and_paces_are_refused()`
+  - Method `.test_non_finite_and_wrong_typed_numbers_are_refused()`
 
 **Functions:**
 - `def make_world(seed, **overrides)`

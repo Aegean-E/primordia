@@ -19,6 +19,22 @@ WATER = 1
 TWO_PI = 2.0 * math.pi
 
 
+def _require_int(name: str, value: object, minimum: int) -> None:
+    """Refuse non-integer shapes and paces before they reach a range() or an index."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{name} must be a whole number, got {value!r}")
+    if value < minimum:
+        raise ValueError(f"{name} must be at least {minimum}, got {value}")
+
+
+def _require_finite(name: str, value: object) -> None:
+    """Refuse strings, NaN and infinity, which poison arithmetic without raising early."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{name} must be a number, got {value!r}")
+    if not math.isfinite(value):
+        raise ValueError(f"{name} must be finite, got {value!r}")
+
+
 @dataclass(frozen=True)
 class WorldConfig:
     """The world's shape and pace: fixed at creation and carried by every save."""
@@ -34,10 +50,12 @@ class WorldConfig:
     season_amplitude: float = 0.75
 
     def __post_init__(self) -> None:
-        if self.width < 1 or self.height < 1:
-            raise ValueError(f"the world needs a positive shape, got {self.width}x{self.height}")
-        if self.day_length < 1:
-            raise ValueError(f"day_length must be at least 1 tick, got {self.day_length}")
+        _require_int("width", self.width, 1)
+        _require_int("height", self.height, 1)
+        _require_int("day_length", self.day_length, 1)
+        for name in ("food_cap", "food_regrowth", "initial_food_share", "water_ratio",
+                     "temperature_swing", "season_amplitude"):
+            _require_finite(name, getattr(self, name))
         if self.food_cap <= 0.0:
             raise ValueError(f"food_cap must be positive, got {self.food_cap}")
         if self.food_regrowth < 0.0:

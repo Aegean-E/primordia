@@ -13,6 +13,7 @@ keeps the fossil record honest.
 from __future__ import annotations
 
 import hashlib
+import math
 import random
 from typing import Dict, List, Optional, Tuple
 
@@ -102,6 +103,11 @@ class Engine:
 
     def spawn(self, genome: Genome, x: int, y: int, energy: float = START_ENERGY) -> Creature:
         """Place one creature on a land tile; the door tests and tools stage a known state with."""
+        if isinstance(x, bool) or not isinstance(x, int) or isinstance(y, bool) or not isinstance(y, int):
+            raise ValueError(f"coordinates must be whole numbers, got ({x!r}, {y!r})")
+        if (isinstance(energy, bool) or not isinstance(energy, (int, float))
+                or not math.isfinite(energy) or energy < 0.0):
+            raise ValueError(f"energy must be a non-negative finite number, got {energy!r}")
         if not self.world.is_land(x, y):
             raise ValueError(f"({x}, {y}) is not a land tile; creatures live on land only")
         species_id, is_new = self.registry.classify(genome, self.tick)
