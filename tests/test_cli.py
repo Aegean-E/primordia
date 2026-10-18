@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from primordia import __version__
-from primordia.cli import main
+from primordia.cli import _persist_session, main
 from primordia.save import load_from
 
 
@@ -72,3 +72,28 @@ class CliTests(unittest.TestCase):
         code, out, err = self.run_cli(["repl", "--seed", "5"], stdin="frobnicate\nquit\n")
         self.assertEqual(code, 0)
         self.assertIn("unknown", out.lower())
+
+    def test_repl_refuses_zero_row_listings(self):
+        code, out, err = self.run_cli(["repl", "--seed", "5"],
+                                      stdin="species 0\nfossil 0\nquit\n")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(out.count("positive whole number"), 2)
+
+    def test_the_observatory_persists_session_changes_back_to_its_save(self):
+        self.run_cli(["run", "--seed", "5", "--ticks", "20", "--save", self.path])
+        engine = load_from(self.path)
+        start = engine.snapshot_hash()
+        for _ in range(5):
+            engine.step()
+        out = io.StringIO()
+        self.assertTrue(_persist_session(engine, self.path, start, out))
+        self.assertIn("saved", out.getvalue())
+        self.assertEqual(load_from(self.path).tick, 25)
+
+    def test_an_untouched_observatory_leaves_its_save_alone(self):
+        self.run_cli(["run", "--seed", "5", "--ticks", "20", "--save", self.path])
+        before = Path(self.path).stat().st_mtime_ns
+        engine = load_from(self.path)
+        out = io.StringIO()
+        self.assertFalse(_persist_session(engine, self.path, engine.snapshot_hash(), out))
+        self.assertEqual(Path(self.path).stat().st_mtime_ns, before)

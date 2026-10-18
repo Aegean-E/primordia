@@ -8,8 +8,8 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
 - **Total Classes**: `43`
-- **Total Functions / Methods**: `65`
-- **Total Source Lines**: `2840`
+- **Total Functions / Methods**: `66`
+- **Total Source Lines**: `2899`
 
 ---
 
@@ -43,7 +43,7 @@
 ### [`primordia/cli.py`](primordia/cli.py)
 > *The command line: run a biosphere, resume one, report on it, or step it interactively.*
 
-**Size**: `247` lines (`9991` bytes)
+**Size**: `262` lines (`10626` bytes)
 
 **Functions:**
 - `def main(argv, out, err, stdin)` - *Run one command; returns the exit code: 0 success, 1 failure, 2 usage.*
@@ -52,6 +52,7 @@
 - `def _resume(args, out)`
 - `def _stats(args, out)`
 - `def _web(args, out)`
+- `def _persist_session(engine, path, start_hash, out)` - *Save an observatory session back to its file when the world changed while observed.*
 - `def _repl(args, out, stdin)`
 - `def _advance(engine, ticks)`
 - `def _report(engine, out)`
@@ -214,7 +215,7 @@
 ### [`primordia/web.py`](primordia/web.py)
 > *The observatory: a local web view of a running world, with god-mode interventions.*
 
-**Size**: `332` lines (`15258` bytes)
+**Size**: `337` lines (`15518` bytes)
 
 **Functions:**
 - `def state_payload(engine)` - *The observable facts of one world, as JSON-ready data.*
@@ -272,7 +273,7 @@
 ### [`tests/test_cli.py`](tests/test_cli.py)
 > *Unit tests for the command line: run, resume, stats and the interactive shell.*
 
-**Size**: `74` lines (`3050` bytes)
+**Size**: `99` lines (`4286` bytes)
 
 **Classes:**
 - `class CliTests`
@@ -287,6 +288,9 @@
   - Method `.test_version_flag_prints_the_version()`
   - Method `.test_repl_steps_stats_hashes_saves_and_quits()`
   - Method `.test_repl_survives_unknown_commands()`
+  - Method `.test_repl_refuses_zero_row_listings()`
+  - Method `.test_the_observatory_persists_session_changes_back_to_its_save()`
+  - Method `.test_an_untouched_observatory_leaves_its_save_alone()`
 
 ---
 
@@ -424,7 +428,7 @@
 ### [`tests/test_web.py`](tests/test_web.py)
 > *Unit tests for the observatory: state payload, dashboard, god-mode shocks and the server.*
 
-**Size**: `211` lines (`8905` bytes)
+**Size**: `225` lines (`9585` bytes)
 
 **Classes:**
 - `class PayloadTests`
@@ -449,6 +453,8 @@
   - Method `.setUpClass()`
   - Method `.tearDownClass()`
   - Method `.test_dashboard_state_and_save_are_served()`
+  - Method `.test_favicon_is_answered_quietly()`
+  - Method `.test_an_oversized_form_body_is_refused()`
   - Method `.test_step_query_advances_the_clock()`
   - Method `.test_god_mode_form_mutates_the_world()`
 

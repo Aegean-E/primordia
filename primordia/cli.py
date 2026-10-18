@@ -129,8 +129,20 @@ def _web(args: argparse.Namespace, out: TextIO) -> int:
 
     engine = load_from(args.path) if args.path else Engine(seed=args.seed)
     _advance(engine, args.ticks)
-    return serve(engine, args.host, args.port,
+    start_hash = engine.snapshot_hash()
+    code = serve(engine, args.host, args.port,
                  out=lambda line: print(line, file=out, flush=True))
+    _persist_session(engine, args.path, start_hash, out)
+    return code
+
+
+def _persist_session(engine: Engine, path: Optional[str], start_hash: str, out: TextIO) -> bool:
+    """Save an observatory session back to its file when the world changed while observed."""
+    if not path or engine.snapshot_hash() == start_hash:
+        return False
+    save_to(engine, path)
+    print(f"saved {path}", file=out)
+    return True
 
 
 def _repl(args: argparse.Namespace, out: TextIO, stdin: TextIO) -> int:
@@ -168,10 +180,13 @@ def _repl(args: argparse.Namespace, out: TextIO, stdin: TextIO) -> int:
                 continue
             save_to(engine, rest[0])
             print(f"saved {rest[0]}", file=out)
-        elif command == "species":
-            _print_species(engine, _count(rest, 10) or 10, out)
-        elif command == "fossil":
-            _print_fossil(engine, _count(rest, 10) or 10, out)
+        elif command == "species" or command == "fossil":
+            count = _count(rest, 10)
+            if count is None or count == 0:
+                print(f"{command} takes a positive whole number of rows", file=out)
+                continue
+            listing = _print_species if command == "species" else _print_fossil
+            listing(engine, count, out)
         else:
             print(f"unknown command: {command} (try `help`)", file=out)
     return 0

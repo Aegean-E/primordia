@@ -3,6 +3,7 @@
 import json
 import threading
 import unittest
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -187,6 +188,7 @@ class HttpSmokeTests(unittest.TestCase):
 
     def test_dashboard_state_and_save_are_served(self):
         with urllib.request.urlopen(self.base + "/", timeout=5) as response:
+            self.assertEqual(response.headers.get("Cache-Control"), "no-store")
             page = response.read().decode("utf-8")
         self.assertIn("Primordia", page)
         with urllib.request.urlopen(self.base + "/state.json", timeout=5) as response:
@@ -195,6 +197,18 @@ class HttpSmokeTests(unittest.TestCase):
         with urllib.request.urlopen(self.base + "/save", timeout=5) as response:
             save_data = json.loads(response.read().decode("utf-8"))
         self.assertEqual(save_data["version"], SAVE_VERSION)
+
+    def test_favicon_is_answered_quietly(self):
+        with urllib.request.urlopen(self.base + "/favicon.ico", timeout=5) as response:
+            self.assertEqual(response.status, 204)
+
+    def test_an_oversized_form_body_is_refused(self):
+        data = b"pad=" + b"a" * 4096 + b"&share=0.5"
+        request = urllib.request.Request(self.base + "/god/cull", data=data)
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(request, timeout=5)
+        self.assertEqual(caught.exception.code, 400)
+        caught.exception.close()
 
     def test_step_query_advances_the_clock(self):
         before = self.engine.tick

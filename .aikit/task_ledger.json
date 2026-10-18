@@ -5,7 +5,7 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792356709.4952726
+    "updated_at": 1792356760.901642
   },
   "checkpoints": [
     {
@@ -188,6 +188,16 @@
       "status": "in_progress",
       "timestamp": 1792356709.4952726,
       "timestamp_str": "2026-10-18 23:51:49"
+    },
+    {
+      "task_id": "task-primordia-audit-v1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/5] Web and CLI polish: the observatory answers Cache-Control no-store on every response, serves /favicon.ico as 204 instead of a 404 body, and caps POST bodies at 4 KiB so an oversized form is refused with the 400 page; the web command saves operator-driven session changes (steps, shocks) back to its save file on exit only when snapshot_hash moved, so untouched saves stay untouched; the REPL now refuses a zero-row species or fossil count instead of quietly showing ten; 5 new tests; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792356760.901642,
+      "timestamp_str": "2026-10-18 23:52:40"
     }
   ]
 }

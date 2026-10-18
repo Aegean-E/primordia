@@ -24,6 +24,7 @@ from primordia.save import dump_text
 from primordia.world import LAND
 
 MAX_STEP_PER_REQUEST = 2000
+MAX_POST_BYTES = 4096
 RECENT_EVENTS = 20
 
 _STYLE = """
@@ -207,6 +208,8 @@ def make_handler(engine: Engine, lock: threading.Lock, quiet: bool = False) -> t
                     body = json.dumps(state_payload(engine),
                                       separators=(",", ":")).encode("utf-8")
                 self._send(200, body, "application/json; charset=utf-8")
+            elif parsed.path == "/favicon.ico":
+                self._send(204, b"", "image/x-icon")
             elif parsed.path == "/save":
                 with lock:
                     body = dump_text(engine).encode("utf-8")
@@ -218,7 +221,7 @@ def make_handler(engine: Engine, lock: threading.Lock, quiet: bool = False) -> t
 
         def do_POST(self) -> None:
             parsed = urllib.parse.urlparse(self.path)
-            length = int(self.headers.get("Content-Length") or 0)
+            length = min(int(self.headers.get("Content-Length") or 0), MAX_POST_BYTES)
             fields = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
             with lock:
                 try:
@@ -229,6 +232,7 @@ def make_handler(engine: Engine, lock: threading.Lock, quiet: bool = False) -> t
             summary = f"{report.action}: {report.detail} ({report.tiles} tiles, {report.creatures} creatures)"
             self.send_response(303)
             self.send_header("Location", "/?notice=" + urllib.parse.quote(summary))
+            self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", "0")
             self.end_headers()
 
@@ -236,6 +240,7 @@ def make_handler(engine: Engine, lock: threading.Lock, quiet: bool = False) -> t
                   extra: Optional[Dict[str, str]] = None) -> None:
             self.send_response(status)
             self.send_header("Content-Type", content_type)
+            self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", str(len(body)))
             for name, value in (extra or {}).items():
                 self.send_header(name, value)
