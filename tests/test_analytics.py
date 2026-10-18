@@ -21,3 +21,11 @@ class AnalyticsTests(unittest.TestCase):
         engine = Engine(config=WorldConfig(width=8, height=5), seed=0, founders=0)
         self.assertEqual(species_counts(engine.creatures), {})
         self.assertTrue(all(value == 0.0 for value in trait_means(engine.creatures).values()))
+
+    def test_dead_creatures_are_not_counted_or_measured(self):
+        engine = Engine(config=WorldConfig(width=8, height=5), seed=0, founders=4)
+        dead = engine.creatures[0]
+        dead.alive = False
+        self.assertEqual(sum(species_counts(engine.creatures).values()), 3)
+        living_mean = sum(creature.genome.trait("size") for creature in engine.creatures[1:]) / 3
+        self.assertAlmostEqual(trait_means(engine.creatures)["size"], living_mean)

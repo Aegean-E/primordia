@@ -54,6 +54,26 @@ class DeterminismTests(unittest.TestCase):
             second.step()
         self.assertNotEqual(first.snapshot_hash(), second.snapshot_hash())
 
+    def test_the_hash_sees_rng_temperature_registry_and_fossil_changes(self):
+        def mutate_rng(engine):
+            engine.rng.random()
+
+        def mutate_temperature(engine):
+            engine.world.temperature[0] = (engine.world.temperature[0] + 0.25) % 1.0
+
+        def mutate_registry(engine):
+            engine.registry.classify(Genome(genes=tuple(0.0 for _ in GENES)), tick=0)
+
+        def mutate_fossil(engine):
+            engine.fossil.record_speciation(tick=0, species_id=1, ancestor=0, detail="probe")
+
+        for mutate in (mutate_rng, mutate_temperature, mutate_registry, mutate_fossil):
+            with self.subTest(mutation=mutate.__name__):
+                baseline = small_engine(5)
+                changed = small_engine(5)
+                mutate(changed)
+                self.assertNotEqual(baseline.snapshot_hash(), changed.snapshot_hash())
+
 
 class InvariantTests(unittest.TestCase):
     def test_creatures_stay_alive_on_land_within_bounds(self):

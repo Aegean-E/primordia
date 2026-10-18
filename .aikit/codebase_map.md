@@ -9,7 +9,7 @@
 - **Total Python Modules**: `23`
 - **Total Classes**: `45`
 - **Total Functions / Methods**: `71`
-- **Total Source Lines**: `3378`
+- **Total Source Lines**: `3427`
 
 ---
 
@@ -32,11 +32,11 @@
 ### [`primordia/analytics.py`](primordia/analytics.py)
 > *Small pure statistics over a population: counts by species and mean gene values.*
 
-**Size**: `25` lines (`898` bytes)
+**Size**: `27` lines (`995` bytes)
 
 **Functions:**
 - `def species_counts(creatures)` - *How many living creatures belong to each species id.*
-- `def trait_means(creatures)` - *The population's mean value per gene; all zeros for an empty population.*
+- `def trait_means(creatures)` - *The living population's mean value per gene; all zeros for an empty population.*
 
 ---
 
@@ -78,14 +78,14 @@
 ### [`primordia/engine.py`](primordia/engine.py)
 > *The deterministic tick loop: metabolism, sensing, action, birth and death.*
 
-**Size**: `428` lines (`20675` bytes)
+**Size**: `447` lines (`21708` bytes)
 
 **Classes:**
 - `class Engine` - *The simulation: a world plus its creatures, advanced one deterministic tick at a time.*
   - Method `.__init__(config, seed, founders)`
   - Method `.spawn(genome, x, y, energy)` - *Place one creature on a land tile; the door tests and tools stage a known state with.*
   - Method `.step()` - *Advance one tick: the world updates, then every living creature acts in cid order.*
-  - Method `.snapshot_hash()` - *A SHA-256 over the tick and the full creature and food state; equal state, equal hash.*
+  - Method `.snapshot_hash()` - *A SHA-256 over the full replay state: tick, RNG, world, creatures, species and fossil.*
   - Method `._found(founders)` - *Seed one ancestral species: a viable template with per-founder jitter around it.*
   - Method `._new_creature(genome, x, y, energy, species_id)`
   - Method `._neighbour_hash()` - *Living creatures by tile index; membership is kept current as they move and die.*
@@ -268,12 +268,13 @@
 ### [`tests/test_analytics.py`](tests/test_analytics.py)
 > *Unit tests for the population statistics helpers.*
 
-**Size**: `23` lines (`1040` bytes)
+**Size**: `31` lines (`1506` bytes)
 
 **Classes:**
 - `class AnalyticsTests`
   - Method `.test_counts_and_means_on_a_seeded_population()`
   - Method `.test_empty_population_has_no_counts_and_zero_means()`
+  - Method `.test_dead_creatures_are_not_counted_or_measured()`
 
 ---
 
@@ -306,12 +307,13 @@
 ### [`tests/test_engine.py`](tests/test_engine.py)
 > *Unit tests for the engine: determinism, invariants and the behavioural mechanics.*
 
-**Size**: `255` lines (`11235` bytes)
+**Size**: `275` lines (`12108` bytes)
 
 **Classes:**
 - `class DeterminismTests`
   - Method `.test_same_seed_replays_the_same_history()`
   - Method `.test_different_seeds_diverge()`
+  - Method `.test_the_hash_sees_rng_temperature_registry_and_fossil_changes()`
 - `class InvariantTests`
   - Method `.test_creatures_stay_alive_on_land_within_bounds()`
   - Method `.test_world_layers_stay_in_their_ranges()`

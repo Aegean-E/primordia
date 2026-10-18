@@ -134,15 +134,34 @@ class Engine:
         self.tick += 1
 
     def snapshot_hash(self) -> str:
-        """A SHA-256 over the tick and the full creature and food state; equal state, equal hash."""
+        """A SHA-256 over the full replay state: tick, RNG, world, creatures, species and fossil."""
         digest = hashlib.sha256()
-        digest.update(f"tick={self.tick};next={self.next_cid};".encode("ascii"))
+
+        def feed(text: str) -> None:
+            digest.update(text.encode("utf-8"))
+
+        feed(f"tick={self.tick};next={self.next_cid};seed={self.seed};config={self.config!r};")
+        feed(f"rng={self.rng.getstate()!r};")
         for creature in self.creatures:
-            digest.update(f"{creature.cid}|{creature.x}|{creature.y}|{creature.age}"
-                          f"|{creature.species}|{creature.energy!r}"
-                          f"|{creature.genome.genes!r}|".encode("ascii"))
-        for value in self.world.food:
-            digest.update(f"{value!r};".encode("ascii"))
+            feed(f"{creature.cid}|{creature.x}|{creature.y}|{creature.age}"
+                 f"|{creature.alive}|{creature.species}|{creature.energy!r}"
+                 f"|{creature.genome.genes!r}|")
+        for name in ("terrain", "phase", "food", "temperature"):
+            feed(f"{name}={getattr(self.world, name)!r};")
+        feed(f"registry_distance={self.registry.distance!r};")
+        for species_id in range(1, len(self.registry) + 1):
+            species = self.registry.get(species_id)
+            feed(f"species={species.species_id}|{species.founder_genome.genes!r}"
+                 f"|{species.birth_tick}|{species.ancestor};")
+        feed(f"fossil_cap={self.fossil.event_cap};speciations={self.fossil.speciations}"
+             f";extinctions={self.fossil.extinctions};")
+        for species_id in sorted(self.fossil.traces):
+            trace = self.fossil.traces[species_id]
+            feed(f"trace={species_id}|{trace.first_seen}|{trace.last_seen}"
+                 f"|{trace.peak_population}|{trace.extinct_tick};")
+        for event in self.fossil.events:
+            feed(f"event={event.tick}|{event.kind}|{event.species_id}|{event.ancestor}"
+                 f"|{event.detail};")
         return digest.hexdigest()
 
     def _found(self, founders: int) -> None:

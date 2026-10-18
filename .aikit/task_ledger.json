@@ -5,19 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792361485.6763642
+    "updated_at": 1792361550.9297116
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-core-v1",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[5/6] Implementing the web observatory: shocks.py (god-mode interventions - meteor, bloom, cull, introduce - as pure engine mutations with no new state, so saves stay exactly resumable), web.py (stdlib http.server dashboard: server-rendered map, stats, species table, fossil events; ?step= and meta-refresh auto-play; /state.json; /save download), a  CLI command, and tests for payload, rendering, shocks and one real-socket smoke. Failing-first tests come first.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792355638.8798661,
-      "timestamp_str": "2026-10-18 23:33:58"
-    },
     {
       "task_id": "task-primordia-core-v1",
       "phase": "phase 4",
@@ -222,6 +212,16 @@
       "status": "in_progress",
       "timestamp": 1792361485.6763642,
       "timestamp_str": "2026-10-19 01:11:25"
+    },
+    {
+      "task_id": "task-primordia-hardening-v3",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/4] Honest determinism and statistics: snapshot_hash now covers the seed, config, raw RNG state, terrain, season phases, food, temperature, every species record, the registry distance and the full fossil record, so an RNG-only or climate-only divergence is visible (about 1 ms per call, on demand only); species_counts and trait_means ignore dead creatures as their docstrings already promised. 2 new tests (four mutation probes plus a dead-population check); 125/125 in 2.4s; same-seed full-state hash and save/load replay still exact; 4/4 gates; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792361550.9297116,
+      "timestamp_str": "2026-10-19 01:12:30"
     }
   ]
 }

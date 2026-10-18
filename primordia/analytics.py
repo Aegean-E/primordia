@@ -12,14 +12,16 @@ def species_counts(creatures: Sequence[Creature]) -> Dict[int, int]:
     """How many living creatures belong to each species id."""
     counts: Dict[int, int] = {}
     for creature in creatures:
-        counts[creature.species] = counts.get(creature.species, 0) + 1
+        if creature.alive:
+            counts[creature.species] = counts.get(creature.species, 0) + 1
     return counts
 
 
 def trait_means(creatures: Sequence[Creature]) -> Dict[str, float]:
-    """The population's mean value per gene; all zeros for an empty population."""
-    if not creatures:
+    """The living population's mean value per gene; all zeros for an empty population."""
+    living = [creature for creature in creatures if creature.alive]
+    if not living:
         return {gene.name: 0.0 for gene in GENES}
-    total = len(creatures)
-    return {gene.name: sum(creature.genome.trait(gene.name) for creature in creatures) / total
+    total = len(living)
+    return {gene.name: sum(creature.genome.trait(gene.name) for creature in living) / total
             for gene in GENES}
