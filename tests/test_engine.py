@@ -2,9 +2,11 @@
 
 import time
 import unittest
+from unittest import mock
 
 from primordia.engine import Engine
-from primordia.genome import GENES, GENE_COUNT, Genome
+from primordia.genome import GENES, GENE_COUNT, Genome, genetic_distance
+from primordia.species import SPECIATION_DISTANCE
 from primordia.world import WorldConfig
 
 
@@ -106,6 +108,39 @@ class ResilienceTests(unittest.TestCase):
 
 
 class BehaviourTests(unittest.TestCase):
+    def test_moving_a_creature_updates_the_neighbour_buckets(self):
+        engine = small_engine(3, founders=0, water_ratio=0.0)
+        creature = engine.spawn(staged_genome(), 1, 1, energy=20.0)
+        buckets = engine._neighbour_hash()
+        self.assertIn(creature, buckets[engine.world.index(1, 1)])
+        engine._move(creature, 5, 5, buckets)
+        self.assertNotIn(creature, buckets.get(engine.world.index(1, 1), ()))
+        self.assertIn(creature, buckets[engine.world.index(5, 5)])
+        self.assertNotIn(creature, engine._nearby(
+            engine.spawn(staged_genome(), 1, 1, energy=20.0), 2, buckets))
+
+    def test_a_dead_creature_leaves_the_neighbour_buckets(self):
+        engine = small_engine(3, founders=0, water_ratio=0.0)
+        creature = engine.spawn(staged_genome(), 2, 2, energy=20.0)
+        buckets = engine._neighbour_hash()
+        engine._die(creature, buckets)
+        self.assertNotIn(creature, buckets[engine.world.index(2, 2)])
+
+    def test_a_newborn_joins_the_neighbour_buckets_at_its_parent(self):
+        engine = small_engine(3, founders=0, water_ratio=0.0)
+        parent = engine.spawn(staged_genome(fecundity=1.0), 3, 3, energy=200.0)
+        buckets = engine._neighbour_hash()
+        children = engine._birth(parent, (parent,), buckets)
+        self.assertTrue(children)
+        self.assertIn(children[0], buckets[engine.world.index(3, 3)])
+
+    def test_the_second_stride_stops_on_its_target(self):
+        engine = small_engine(3, founders=0, water_ratio=0.0)
+        creature = engine.spawn(staged_genome(speed=1.0), 5, 5, energy=20.0)
+        with mock.patch("random.Random.random", return_value=0.0):
+            engine._move_towards(creature, 6, 5, engine._neighbour_hash())
+        self.assertEqual((creature.x, creature.y), (6, 5))
+
     def test_grazing_moves_energy_from_the_soil_to_the_grazer(self):
         engine = small_engine(2, founders=0, initial_food_share=0.0)
         x, y = land_tile(engine)
@@ -173,6 +208,17 @@ class SpeciesIntegrationTests(unittest.TestCase):
         engine = small_engine(4)
         self.assertEqual(len(engine.registry), 1)
         self.assertTrue(all(creature.species == 1 for creature in engine.creatures))
+
+    def test_every_seed_founds_one_species_for_the_whole_herd(self):
+        for seed in range(120):
+            with self.subTest(seed=seed):
+                engine = small_engine(seed, founders=60)
+                self.assertEqual(len(engine.registry), 1)
+                self.assertTrue(all(creature.species == 1 for creature in engine.creatures))
+                founder = engine.registry.get(1).founder_genome
+                for creature in engine.creatures:
+                    self.assertLessEqual(
+                        genetic_distance(creature.genome, founder), SPECIATION_DISTANCE)
 
     def test_census_populates_the_fossil_record(self):
         engine = small_engine(4)

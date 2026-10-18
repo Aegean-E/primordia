@@ -1,34 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "task-primordia-fixes-v2",
+    "task_id": "task-primordia-hardening-v3",
     "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1792360219.5191896,
-    "completed_at": 1792360237.3339374
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1792361271.5196111
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-core-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/6] Species and fossil record complete: phenetic SpeciesRegistry (nearest founding genome within SPECIATION_DISTANCE 0.18, monotone tree ids carrying ancestors), FossilRecord (per-species traces, bounded event log, monotone counters) and analytics; founders are one ancestral species (survivable template plus jitter); two repairs the integration forced: standing biomass at world start and travel-discounted forage (fixed the herding die-off). 53/53 tests in 0.9s; default world holds 90-190 creatures to t=4000 across six seeds with 15-100 species; determinism at scale holds; checklists: passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792355237.5245411,
-      "timestamp_str": "2026-10-18 23:27:17"
-    },
-    {
-      "task_id": "task-primordia-core-v1",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[4/6] Implementing persistence and interface: save.py (versioned JSON snapshot of world layers, creatures, registry, fossil record and the exact random.Random state; atomic temp + fsync + os.replace with .bak and corrupt-file quarantine) and cli.py with __main__ (run/resume/stats/repl, injected streams, Why/Fix errors, exit codes 0/1/2). Failing-first tests come first: test_save.py and test_cli.py.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792355274.5362108,
-      "timestamp_str": "2026-10-18 23:27:54"
-    },
     {
       "task_id": "task-primordia-core-v1",
       "phase": "phase 4",
@@ -217,6 +196,32 @@
       "status": "completed",
       "timestamp": 1792360237.33394,
       "timestamp_str": "2026-10-19 00:50:37"
+    },
+    {
+      "task_id": "task-primordia-hardening-v3",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] Third hardening pass from a full-code audit: (1) simulation correctness - maintain the spatial hash through movement, death and birth instead of querying stale start-of-tick positions; stop a second stride from overshooting its target; make the ancestral template the species-1 founder so every jittered founder is provably within the speciation distance (17 of 300 seeds currently start with two species); (2) input and snapshot integrity - WorldConfig rejects non-integer shapes, non-finite numbers and wrong types, Engine.spawn rejects non-finite energy, save loading validates layer lengths, creature bounds and species references (currently a short terrain/food layer or an out-of-bounds creature loads and later crashes with IndexError), and dump refuses NaN; (3) honest determinism and statistics - snapshot_hash covers the RNG, temperature, registry and fossil instead of only creatures and food, and analytics count living creatures only; (4) README, ADR-009, version 1.0.3 and the release.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792360798.1879056,
+      "timestamp_str": "2026-10-19 00:59:58",
+      "impact_assessment": {
+        "why": "The audit found real defects beyond the documented contract: the neighbour hash is stale for the whole tick after any move, founders sometimes split into two species at tick 0, hostile or truncated saves load and then crash deep in the tick loop, and the determinism hash cannot see RNG divergence.",
+        "benefits": "Interactions use actual positions; founders honor the one-ancestral-species promise; malformed saves are quarantined with Why/Fix instead of crashing later; nondeterminism in the RNG is detectable; population statistics match their docstrings.",
+        "risks": "contract: neighbour selection, founder classification and snapshot_hash values change; dependency: none; concurrency: none (single-threaded engine); state: the save schema is unchanged but a previously loadable malformed snapshot may now be refused; performance: bucket updates add O(tile occupancy) work per move and the richer hash is only computed on demand.",
+        "mitigation": "Failing-first tests for each behaviour; full gates and a fixed-seed determinism replay after each milestone; small milestones with explicit staging."
+      }
+    },
+    {
+      "task_id": "task-primordia-hardening-v3",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[1/4] Simulation correctness: the neighbour hash is now updated on every move, death and birth so interactions use actual positions (previously a creature was queried at its start-of-tick tile all tick); newborns killed in their birth tick are not retained; the second stride stops on its target instead of overshooting; the ancestral template itself founds species 1, so every jittered founder is at most 0.15 RMS from it and the herd is provably one species. 5 new failing-first tests (including 120 seeds); 111/111 tests in 2.1s; 3000-tick soak at 887 ticks/s with 151 creatures and 47 species; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792361271.5196111,
+      "timestamp_str": "2026-10-19 01:07:51"
     }
   ]
 }

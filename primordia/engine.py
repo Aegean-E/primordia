@@ -121,9 +121,9 @@ class Engine:
                 self._tick_creature(creature, buckets, newborns)
         for creature in self.creatures:
             if creature.alive and creature.energy <= 0.0:
-                self._die(creature)
+                self._die(creature, buckets)
         self.creatures = [creature for creature in self.creatures if creature.alive]
-        self.creatures.extend(newborns)
+        self.creatures.extend(creature for creature in newborns if creature.alive)
         self.fossil.census(species_counts(self.creatures), self.tick)
         self.tick += 1
 
@@ -141,16 +141,21 @@ class Engine:
 
     def _found(self, founders: int) -> None:
         """Seed one ancestral species: a viable template with per-founder jitter around it."""
-        template = tuple(
-            self.rng.uniform(*FOUNDER_BASE_RANGES.get(gene.name, (gene.low, gene.high)))
-            for gene in GENES
-        )
         land_tiles = [tile for tile in range(self.world.length)
                       if self.world.terrain[tile] == LAND]
+        if founders <= 0 or not land_tiles:
+            return
+        template = Genome(genes=tuple(
+            self.rng.uniform(*FOUNDER_BASE_RANGES.get(gene.name, (gene.low, gene.high)))
+            for gene in GENES
+        ))
+        # The template itself is species 1, so the jitter (at most 0.15 per gene, hence at
+        # most 0.15 root-mean-square) can never exceed the 0.18 speciation distance.
+        self.registry.classify(template, self.tick)
         self.rng.shuffle(land_tiles)
-        for tile in land_tiles[:max(0, min(founders, len(land_tiles)))]:
+        for tile in land_tiles[:min(founders, len(land_tiles))]:
             genes = tuple(min(1.0, max(0.0, value + self.rng.uniform(-FOUNDER_JITTER, FOUNDER_JITTER)))
-                          for value in template)
+                          for value in template.genes)
             x, y = self.world.xy(tile)
             self.spawn(Genome(genes=genes), x, y)
 
@@ -162,7 +167,7 @@ class Engine:
         return creature
 
     def _neighbour_hash(self) -> Dict[int, List[Creature]]:
-        """Living creatures by tile index; bucket order is cid order, so scans stay deterministic."""
+        """Living creatures by tile index; membership is kept current as they move and die."""
         buckets: Dict[int, List[Creature]] = {}
         for creature in self.creatures:
             if creature.alive:
@@ -191,7 +196,7 @@ class Engine:
         self._pay_upkeep(creature)
         creature.age += 1
         if creature.energy <= 0.0 or creature.age > self._max_age(creature):
-            self._die(creature)
+            self._die(creature, buckets)
             return
         if creature.energy < self._satiation(creature):
             self._seek_energy(creature, buckets)
@@ -216,12 +221,12 @@ class Engine:
                 and creature.genome.trait("aggression") > HUNT_AGGRESSION_MIN):
             victim = self._weakest_prey(creature, self._nearby(creature, radius, buckets))
             if victim is not None:
-                self._attack(creature, victim)
+                self._attack(creature, victim, buckets)
                 return
         tile = self._richest_tile(creature, radius)
         if tile is not None:
             if tile != (creature.x, creature.y):
-                self._move_towards(creature, tile[0], tile[1])
+                self._move_towards(creature, tile[0], tile[1], buckets)
             self._graze(creature)
         else:
             self._wander(creature, buckets)
@@ -237,7 +242,8 @@ class Engine:
         creature.energy += taken
         return taken
 
-    def _attack(self, hunter: Creature, victim: Creature) -> None:
+    def _attack(self, hunter: Creature, victim: Creature,
+                buckets: Dict[int, List[Creature]]) -> None:
         """One strike; size shields a comparable victim, and a kill feeds the hunter."""
         hunter.energy -= HUNT_COST
         prey_energy = max(0.0, victim.energy)
@@ -246,7 +252,7 @@ class Engine:
         armor = DEFENSE_SHARE * max(0.0, min(1.0, (ratio - DEFENSE_FLOOR) / (1.0 - DEFENSE_FLOOR)))
         victim.energy -= (HUNT_DAMAGE_BASE + HUNT_DAMAGE_SIZE * hunter_size) * (1.0 - armor)
         if victim.energy <= 0.0:
-            self._die(victim)
+            self._die(victim, buckets)
             hunter.energy += HUNT_ENERGY_GAIN * prey_energy
 
     def _try_reproduce(self, creature: Creature, buckets: Dict[int, List[Creature]]) -> List[Creature]:
@@ -263,12 +269,13 @@ class Engine:
         chance = REPRO_CHANCE_BASE + REPRO_CHANCE_FECUNDITY * creature.genome.trait("fecundity")
         if mate is not None:
             if self.rng.random() < chance:
-                return self._birth(creature, (creature, mate))
+                return self._birth(creature, (creature, mate), buckets)
         elif self.rng.random() < chance * ASEXUAL_CHANCE_SHARE:
-            return self._birth(creature, (creature,))
+            return self._birth(creature, (creature,), buckets)
         return []
 
-    def _birth(self, parent: Creature, parents: Tuple[Creature, ...]) -> List[Creature]:
+    def _birth(self, parent: Creature, parents: Tuple[Creature, ...],
+               buckets: Dict[int, List[Creature]]) -> List[Creature]:
         """Invest energy into a litter; each child mixes or copies the parental genomes, then mutates."""
         invest = REPRO_INVEST_SHARE * parent.energy
         parent.energy -= invest
@@ -284,7 +291,9 @@ class Engine:
             species_id, is_new = self.registry.classify(genome, self.tick, ancestor=parent.species)
             if is_new:
                 self.fossil.record_speciation(self.tick, species_id, ancestor=parent.species)
-            children.append(self._new_creature(genome, parent.x, parent.y, share, species_id))
+            child = self._new_creature(genome, parent.x, parent.y, share, species_id)
+            buckets.setdefault(self.world.index(child.x, child.y), []).append(child)
+            children.append(child)
         return children
 
     def _wander(self, creature: Creature, buckets: Dict[int, List[Creature]]) -> None:
@@ -295,14 +304,15 @@ class Engine:
             partner = self._nearest(creature, self._nearby(creature, self._sense_radius(creature),
                                                            buckets))
             if partner is not None:
-                self._move_towards(creature, partner.x, partner.y)
+                self._move_towards(creature, partner.x, partner.y, buckets)
                 return
         if curiosity_draw < creature.genome.trait("curiosity"):
             target = self._random_free_neighbour(creature)
             if target is not None:
-                self._move_towards(creature, target[0], target[1])
+                self._move_towards(creature, target[0], target[1], buckets)
 
-    def _move_towards(self, creature: Creature, x: int, y: int) -> None:
+    def _move_towards(self, creature: Creature, x: int, y: int,
+                      buckets: Dict[int, List[Creature]]) -> None:
         """Step one tile toward (x, y), preferring the larger axis; a fast creature may stride twice."""
         if (x, y) == (creature.x, creature.y):
             return
@@ -319,16 +329,25 @@ class Engine:
             target = (creature.x + step_x, creature.y + step_y)
             if not self.world.is_land(*target):
                 continue
-            self._move(creature, *target)
+            self._move(creature, target[0], target[1], buckets)
+            if (creature.x, creature.y) == (x, y):
+                return
             speed = creature.genome.trait("speed")
             if self.rng.random() < STRIDE_CHANCE_PER_SPEED * speed:
                 second = (creature.x + step_x, creature.y + step_y)
                 if self.world.is_land(*second):
-                    self._move(creature, *second)
+                    self._move(creature, second[0], second[1], buckets)
             return
 
-    def _move(self, creature: Creature, x: int, y: int) -> None:
+    def _move(self, creature: Creature, x: int, y: int,
+              buckets: Dict[int, List[Creature]]) -> None:
+        """Move one tile and keep the neighbour hash pointing at the creature's new tile."""
+        old_index = self.world.index(creature.x, creature.y)
+        old_bucket = buckets.get(old_index)
+        if old_bucket is not None and creature in old_bucket:
+            old_bucket.remove(creature)
         creature.x, creature.y = x, y
+        buckets.setdefault(self.world.index(x, y), []).append(creature)
         genome = creature.genome
         creature.energy -= (MOVE_COST_BASE + MOVE_COST_SIZE * genome.trait("size")
                             + MOVE_COST_SPEED * genome.trait("speed"))
@@ -377,10 +396,13 @@ class Engine:
         return min(candidates, key=lambda other: (max(abs(other.x - creature.x), abs(other.y - creature.y)),
                                                   other.cid))
 
-    def _die(self, creature: Creature) -> None:
-        """Death returns the body to the soil at the creature's tile."""
+    def _die(self, creature: Creature, buckets: Dict[int, List[Creature]]) -> None:
+        """Death returns the body to the soil and removes the creature from the neighbour hash."""
         creature.alive = False
         tile = self.world.index(creature.x, creature.y)
+        bucket = buckets.get(tile)
+        if bucket is not None and creature in bucket:
+            bucket.remove(creature)
         self.world.add_food(tile, CARCASS_BASE + CARCASS_SIZE * creature.genome.trait("size"))
 
     def _sense_radius(self, creature: Creature) -> int:

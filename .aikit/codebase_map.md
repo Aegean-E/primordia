@@ -9,7 +9,7 @@
 - **Total Python Modules**: `23`
 - **Total Classes**: `44`
 - **Total Functions / Methods**: `67`
-- **Total Source Lines**: `3088`
+- **Total Source Lines**: `3156`
 
 ---
 
@@ -78,7 +78,7 @@
 ### [`primordia/engine.py`](primordia/engine.py)
 > *The deterministic tick loop: metabolism, sensing, action, birth and death.*
 
-**Size**: `400` lines (`18817` bytes)
+**Size**: `422` lines (`20236` bytes)
 
 **Classes:**
 - `class Engine` - *The simulation: a world plus its creatures, advanced one deterministic tick at a time.*
@@ -88,23 +88,23 @@
   - Method `.snapshot_hash()` - *A SHA-256 over the tick and the full creature and food state; equal state, equal hash.*
   - Method `._found(founders)` - *Seed one ancestral species: a viable template with per-founder jitter around it.*
   - Method `._new_creature(genome, x, y, energy, species_id)`
-  - Method `._neighbour_hash()` - *Living creatures by tile index; bucket order is cid order, so scans stay deterministic.*
+  - Method `._neighbour_hash()` - *Living creatures by tile index; membership is kept current as they move and die.*
   - Method `._nearby(creature, radius, buckets)` - *Living others within `radius` tiles, in a deterministic tile-then-bucket order.*
   - Method `._tick_creature(creature, buckets, newborns)`
   - Method `._pay_upkeep(creature)`
   - Method `._seek_energy(creature, buckets)`
   - Method `._graze(creature)` - *Eat from the current tile; a pure hunter (diet 1) takes nothing.*
-  - Method `._attack(hunter, victim)` - *One strike; size shields a comparable victim, and a kill feeds the hunter.*
+  - Method `._attack(hunter, victim, buckets)` - *One strike; size shields a comparable victim, and a kill feeds the hunter.*
   - Method `._try_reproduce(creature, buckets)` - *A litter when energy allows and a mate shares the genome; asexual births are rarer.*
-  - Method `._birth(parent, parents)` - *Invest energy into a litter; each child mixes or copies the parental genomes, then mutates.*
+  - Method `._birth(parent, parents, buckets)` - *Invest energy into a litter; each child mixes or copies the parental genomes, then mutates.*
   - Method `._wander(creature, buckets)` - *Idle motion: a social pull toward a neighbour first, then a curious random stroll.*
-  - Method `._move_towards(creature, x, y)` - *Step one tile toward (x, y), preferring the larger axis; a fast creature may stride twice.*
-  - Method `._move(creature, x, y)`
+  - Method `._move_towards(creature, x, y, buckets)` - *Step one tile toward (x, y), preferring the larger axis; a fast creature may stride twice.*
+  - Method `._move(creature, x, y, buckets)` - *Move one tile and keep the neighbour hash pointing at the creature's new tile.*
   - Method `._random_free_neighbour(creature)`
   - Method `._richest_tile(creature, radius)` - *The most valuable tile in sight: its stock minus a travel cost per step of distance.*
   - Method `._weakest_prey(hunter, others)`
   - Method `._nearest(creature, candidates)`
-  - Method `._die(creature)` - *Death returns the body to the soil at the creature's tile.*
+  - Method `._die(creature, buckets)` - *Death returns the body to the soil and removes the creature from the neighbour hash.*
   - Method `._sense_radius(creature)`
   - Method `._satiation(creature)` - *A creature forages until it can afford a litter, then looks for a mate.*
   - Method `._repro_threshold(creature)`
@@ -300,7 +300,7 @@
 ### [`tests/test_engine.py`](tests/test_engine.py)
 > *Unit tests for the engine: determinism, invariants and the behavioural mechanics.*
 
-**Size**: `201` lines (`8378` bytes)
+**Size**: `247` lines (`10865` bytes)
 
 **Classes:**
 - `class DeterminismTests`
@@ -314,6 +314,10 @@
   - Method `.test_an_empty_world_keeps_ticking_without_incident()`
   - Method `.test_a_dead_world_keeps_ticking_and_records_the_extinction()`
 - `class BehaviourTests`
+  - Method `.test_moving_a_creature_updates_the_neighbour_buckets()`
+  - Method `.test_a_dead_creature_leaves_the_neighbour_buckets()`
+  - Method `.test_a_newborn_joins_the_neighbour_buckets_at_its_parent()`
+  - Method `.test_the_second_stride_stops_on_its_target()`
   - Method `.test_grazing_moves_energy_from_the_soil_to_the_grazer()`
   - Method `.test_grazer_grazes_where_it_stands_instead_of_marching_to_equal_stock()`
   - Method `.test_attack_kills_a_weaker_neighbour_and_feeds_the_hunter()`
@@ -321,6 +325,7 @@
   - Method `.test_two_creatures_reproduce_and_children_hold_bounded_genomes()`
 - `class SpeciesIntegrationTests`
   - Method `.test_founders_start_as_one_species()`
+  - Method `.test_every_seed_founds_one_species_for_the_whole_herd()`
   - Method `.test_census_populates_the_fossil_record()`
   - Method `.test_drift_grows_the_registry_over_time()`
 - `class PerformanceTests`
