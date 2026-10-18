@@ -10,6 +10,7 @@ the `.bak` takes over; when no usable file remains, `SaveError` says why and wha
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import time
@@ -49,9 +50,9 @@ def save_to(engine: Engine, path: Union[str, Path]) -> Path:
     """Write the engine's full state to `path` atomically, rotating the old file to `.bak`."""
     path = Path(path)
     payload = dump_text(engine)
+    temp = path.with_name(path.name + f".tmp_{os.getpid()}")
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        temp = path.with_name(path.name + f".tmp_{os.getpid()}")
         with open(temp, "w", encoding="utf-8") as handle:
             handle.write(payload)
             handle.flush()
@@ -61,6 +62,8 @@ def save_to(engine: Engine, path: Union[str, Path]) -> Path:
         _replace(temp, path)
         _sync_directory(path.parent)
     except OSError as error:
+        with contextlib.suppress(OSError):
+            temp.unlink(missing_ok=True)
         raise SaveError(
             f"could not write the save to {path}",
             why=f"the filesystem refused the write ({error})",
@@ -73,6 +76,20 @@ def load_from(path: Union[str, Path]) -> Engine:
     """Read a saved engine back; quarantine a corrupt file and fall back to its `.bak`."""
     path = Path(path)
     if not path.exists():
+        backup = Path(str(path) + BACKUP_SUFFIX)
+        if backup.exists():
+            try:
+                engine = _engine_from_data(_read_json(backup))
+            except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+                engine = None
+            if engine is not None:
+                save_to(engine, path)
+                return engine
+            raise SaveError(
+                f"save not found: {path}",
+                why=f"the primary file is missing and its backup at {backup} cannot be read",
+                fix="start a new run with `python -m primordia run --save <path>`",
+            )
         raise SaveError(
             f"save not found: {path}",
             why="no file exists at that path",
@@ -201,7 +218,12 @@ def _engine_to_data(engine: Engine) -> Dict[str, Any]:
 def _engine_from_data(data: Dict[str, Any]) -> Engine:
     version = data.get("version")
     if version != SAVE_VERSION:
-        raise ValueError(f"save version {version!r} is not {SAVE_VERSION}")
+        raise SaveError(
+            f"this save is written in format version {version!r}; this build reads version "
+            f"{SAVE_VERSION}",
+            why="the save was written by a different (probably newer) primordia",
+            fix="open it with the primordia that wrote it, or start a new run",
+        )
     engine = Engine(config=WorldConfig(**data["config"]), seed=int(data["seed"]), founders=0)
     layers = data["world"]
     engine.world.terrain = [int(tile) for tile in layers["terrain"]]

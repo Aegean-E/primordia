@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from primordia import shocks
 from primordia.engine import Engine
@@ -63,6 +64,18 @@ class RoundTripTests(unittest.TestCase):
         save_to(engine, self.path)
         data = json.loads(self.path.read_text(encoding="utf-8"))
         self.assertEqual(data["version"], SAVE_VERSION)
+
+    def test_a_newer_save_version_is_refused_without_quarantine(self):
+        engine = Engine(config=small_config(), seed=5, founders=10)
+        save_to(engine, self.path)
+        data = json.loads(self.path.read_text(encoding="utf-8"))
+        data["version"] = SAVE_VERSION + 1
+        self.path.write_text(json.dumps(data), encoding="utf-8")
+        with self.assertRaises(SaveError) as caught:
+            load_from(self.path)
+        self.assertIn("version", str(caught.exception))
+        self.assertTrue(self.path.exists())
+        self.assertEqual(list(self.path.parent.glob(self.path.name + ".corrupt_*")), [])
 
     def test_a_shocked_world_round_trips_exactly(self):
         original = Engine(config=small_config(), seed=4, founders=30)
@@ -127,3 +140,23 @@ class AtomicityTests(unittest.TestCase):
             load_from(self.path)
         self.assertIn("Why:", str(caught.exception))
         self.assertIn("Fix:", str(caught.exception))
+
+    def test_a_missing_primary_with_a_live_backup_restores_itself(self):
+        first = Engine(config=small_config(), seed=3, founders=10)
+        save_to(first, self.path)
+        second = Engine(config=small_config(), seed=9, founders=10)
+        for _ in range(30):
+            second.step()
+        save_to(second, self.path)
+        self.path.unlink()
+        restored = load_from(self.path)
+        self.assertEqual(restored.snapshot_hash(), first.snapshot_hash())
+        self.assertTrue(self.path.exists())
+        self.assertEqual(load_from(self.path).snapshot_hash(), first.snapshot_hash())
+
+    def test_a_failed_replace_leaves_no_temp_file(self):
+        engine = Engine(config=small_config(), seed=3, founders=10)
+        with mock.patch("primordia.save._replace", side_effect=OSError("busy")):
+            with self.assertRaises(SaveError):
+                save_to(engine, self.path)
+        self.assertEqual(list(self.path.parent.glob("*.tmp_*")), [])

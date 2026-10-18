@@ -9,7 +9,7 @@
 - **Total Python Modules**: `23`
 - **Total Classes**: `42`
 - **Total Functions / Methods**: `64`
-- **Total Source Lines**: `2757`
+- **Total Source Lines**: `2812`
 
 ---
 
@@ -152,7 +152,7 @@
 ### [`primordia/save.py`](primordia/save.py)
 > *Persistence: one versioned JSON snapshot carries a whole run across processes.*
 
-**Size**: `256` lines (`10001` bytes)
+**Size**: `278` lines (`10974` bytes)
 
 **Classes:**
 - `class SaveError` - *A save could not be read or written; the message carries Why and Fix lines.*
@@ -378,7 +378,7 @@
 ### [`tests/test_save.py`](tests/test_save.py)
 > *Unit tests for persistence: exact round trips, atomic writes, backup fallback and quarantine.*
 
-**Size**: `129` lines (`5722` bytes)
+**Size**: `162` lines (`7340` bytes)
 
 **Classes:**
 - `class RoundTripTests`
@@ -386,6 +386,7 @@
   - Method `.test_resumed_run_replays_the_same_history()`
   - Method `.test_species_registry_and_fossil_record_survive_the_round_trip()`
   - Method `.test_save_carries_the_format_version()`
+  - Method `.test_a_newer_save_version_is_refused_without_quarantine()`
   - Method `.test_a_shocked_world_round_trips_exactly()`
 - `class AtomicityTests`
   - Method `.setUp()`
@@ -393,6 +394,8 @@
   - Method `.test_a_corrupt_save_falls_back_to_the_backup_and_quarantines_the_wreck()`
   - Method `.test_double_corruption_raises_with_why_and_fix()`
   - Method `.test_missing_file_raises_with_guidance()`
+  - Method `.test_a_missing_primary_with_a_live_backup_restores_itself()`
+  - Method `.test_a_failed_replace_leaves_no_temp_file()`
 
 **Functions:**
 - `def small_config(**overrides)` - *A fast test world; the overrides let a test pin what it stages.*

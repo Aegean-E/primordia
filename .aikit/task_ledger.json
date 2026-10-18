@@ -5,7 +5,7 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792356616.1764016
+    "updated_at": 1792356666.470943
   },
   "checkpoints": [
     {
@@ -168,6 +168,16 @@
       "status": "in_progress",
       "timestamp": 1792356616.1764016,
       "timestamp_str": "2026-10-18 23:50:16"
+    },
+    {
+      "task_id": "task-primordia-audit-v1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/5] Persistence hardened: a save version this build cannot read raises a readable SaveError with Why and Fix and is never quarantined (previously the file was moved aside as corrupt); a missing primary with a live .bak restores itself on load; a failed replace removes its temp file instead of leaving .tmp_ leftovers; 3 new tests; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792356666.470943,
+      "timestamp_str": "2026-10-18 23:51:06"
     }
   ]
 }
