@@ -7,9 +7,9 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
-- **Total Classes**: `40`
+- **Total Classes**: `41`
 - **Total Functions / Methods**: `64`
-- **Total Source Lines**: `2656`
+- **Total Source Lines**: `2704`
 
 ---
 
@@ -43,7 +43,7 @@
 ### [`primordia/cli.py`](primordia/cli.py)
 > *The command line: run a biosphere, resume one, report on it, or step it interactively.*
 
-**Size**: `241` lines (`9680` bytes)
+**Size**: `243` lines (`9805` bytes)
 
 **Functions:**
 - `def main(argv, out, err, stdin)` - *Run one command; returns the exit code: 0 success, 1 failure, 2 usage.*
@@ -113,17 +113,17 @@
 ---
 
 ### [`primordia/fossil.py`](primordia/fossil.py)
-> *The fossil record: species sightings, peaks, extinction events and a bounded event log.*
+> *The fossil record: species sightings, peaks, extinction episodes and a bounded event log.*
 
-**Size**: `78` lines (`3005` bytes)
+**Size**: `80` lines (`3179` bytes)
 
 **Classes:**
 - `class FossilEvent` - *One durable moment: a speciation or an extinction, with its tick and lineage ids.*
 - `class SpeciesTrace` - *One lineage's sighting history, as censuses accumulate.*
-- `class FossilRecord` - *Sightings and events per species; a species absent from a census is extinct.*
+- `class FossilRecord` - *Sightings and events per species; one census miss is one extinction episode.*
   - Method `.__init__(event_cap)`
   - Method `.record_speciation(tick, species_id, ancestor, detail)` - *Note a new lineage; the counter is monotonic even when the window forgets.*
-  - Method `.census(counts, tick)` - *Update sightings and peaks from one population count per species; note extinctions.*
+  - Method `.census(counts, tick)` - *Update sightings and peaks from one count per species; a census miss is an episode.*
   - Method `._append(event)`
 
 ---
@@ -270,7 +270,7 @@
 ### [`tests/test_cli.py`](tests/test_cli.py)
 > *Unit tests for the command line: run, resume, stats and the interactive shell.*
 
-**Size**: `63` lines (`2621` bytes)
+**Size**: `69` lines (`2840` bytes)
 
 **Classes:**
 - `class CliTests`
@@ -281,6 +281,7 @@
   - Method `.test_stats_prints_population_species_and_fossil_counters()`
   - Method `.test_missing_save_exits_one_with_why_and_fix()`
   - Method `.test_usage_errors_exit_two()`
+  - Method `.test_version_flag_prints_the_version()`
   - Method `.test_repl_steps_stats_hashes_saves_and_quits()`
   - Method `.test_repl_survives_unknown_commands()`
 
@@ -289,7 +290,7 @@
 ### [`tests/test_engine.py`](tests/test_engine.py)
 > *Unit tests for the engine: determinism, invariants and the behavioural mechanics.*
 
-**Size**: `179` lines (`7551` bytes)
+**Size**: `201` lines (`8378` bytes)
 
 **Classes:**
 - `class DeterminismTests`
@@ -299,6 +300,9 @@
   - Method `.test_creatures_stay_alive_on_land_within_bounds()`
   - Method `.test_world_layers_stay_in_their_ranges()`
   - Method `.test_population_dynamics_move_over_time()`
+- `class ResilienceTests`
+  - Method `.test_an_empty_world_keeps_ticking_without_incident()`
+  - Method `.test_a_dead_world_keeps_ticking_and_records_the_extinction()`
 - `class BehaviourTests`
   - Method `.test_grazing_moves_energy_from_the_soil_to_the_grazer()`
   - Method `.test_grazer_grazes_where_it_stands_instead_of_marching_to_equal_stock()`
@@ -372,7 +376,7 @@
 ### [`tests/test_save.py`](tests/test_save.py)
 > *Unit tests for persistence: exact round trips, atomic writes, backup fallback and quarantine.*
 
-**Size**: `113` lines (`5095` bytes)
+**Size**: `129` lines (`5722` bytes)
 
 **Classes:**
 - `class RoundTripTests`
@@ -380,6 +384,7 @@
   - Method `.test_resumed_run_replays_the_same_history()`
   - Method `.test_species_registry_and_fossil_record_survive_the_round_trip()`
   - Method `.test_save_carries_the_format_version()`
+  - Method `.test_a_shocked_world_round_trips_exactly()`
 - `class AtomicityTests`
   - Method `.setUp()`
   - Method `.test_overwriting_keeps_the_previous_save_as_a_backup()`

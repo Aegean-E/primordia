@@ -125,3 +125,18 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   stays 1 and a shocked world resumes exactly - a future sustained-climate shock would need
   stored world state and a save-version bump, so it waits. The observatory steps only the
   ticks the operator asked for; it never advances a world behind their back.
+
+### ADR-006: MIT license and the 1.0.0 release
+
+- **Date**: 2026-10-18
+- **Status**: Accepted
+- **Context**: The project is public, and a repository without a license is not legally usable;
+  the six planned milestones are done, so the work needs a version to name it by.
+- **Decision**: Primordia ships under the MIT license (`LICENSE`) and is versioned 1.0.0 in
+  `primordia/__init__.py`, `pyproject.toml` and `python -m primordia --version`; the release is
+  tagged `v1.0.0` in git and on GitHub.
+- **Consequences**: Anyone may use, study, share and modify the sandbox. The save format stays
+  version 1, and everything the ADRs promise holds at this tag - re-verified before it: a
+  10,000-tick default run (about 800 ticks per second, deterministic across a save and reload at
+  tick 5,000, 183 creatures over 69 species), a bounded fossil log at 173 events, and the
+  83-test suite on the milestone-6 checklist.

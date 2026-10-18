@@ -4,9 +4,9 @@ Primordia is a zero-dependency evolution sandbox: seed a biosphere, run its cloc
 genomes vary, compete and speciate. A run replays exactly from its seed, and a fossil record
 keeps the story of what happened.
 
-> **Status**: milestone 5 of 6 - the engine, species and the fossil record, persistence, the
-> command line and the web observatory are in place; the final hardening pass and the release
-> arrive in the next milestone.
+> **Status**: v1.0.0 - all six milestones are in: the genome model, the seasonal world and the
+> deterministic engine, phenetic species with a fossil record, atomic saves and a command line,
+> and the web observatory.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -30,6 +30,7 @@ keeps the story of what happened.
 primordia/
 ├── .aikit/                   <- project memory: record, ledger, decisions, map
 ├── .gitignore                <- transient AIKit state and Python caches excluded
+├── LICENSE                   <- MIT: use, study, share and modify
 ├── README.md
 ├── pyproject.toml            <- build, package configuration and the `primordia` script
 ├── primordia/                <- core package
@@ -111,8 +112,10 @@ starts with real variance inside one lineage.
 
 Each tick the engine censuses the living population. The fossil record keeps one trace per
 species (first and last seen, peak population, extinction tick) plus a bounded event log of
-speciations and extinctions; the counters stay monotone even when the window forgets an old
-event, so a long run costs bounded memory and still tells its whole story.
+speciations and extinction episodes; the counters stay monotone even when the window forgets an
+old event, so a long run costs bounded memory and still tells its whole story. An extinction
+episode is one census miss, and a species that reappears clears its date and can end again -
+the counter counts moments, not gravestones.
 
 ## 💾 Saves & The Command Line
 
@@ -158,12 +161,16 @@ The unit suite runs with:
 python -m unittest discover
 ```
 
-79 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
+83 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
 operators; terrain, standing biomass, growth and temperature invariants for the world;
 classification, ancestry and monotone ids for the species registry; censuses, extinction and
 the bounded event log for the fossil record; population statistics; exact save round trips,
-atomic writes and backup recovery for persistence; run, resume, stats and the interactive
-shell for the command line; payload, dashboard rendering, the four god-mode shocks and a
-real-socket smoke for the observatory; and for the engine, byte-identical replays of the same
-seed, world and creature invariants over runs, staged grazing and hunting mechanics,
-armored-defense arithmetic, a drift-to-speciation run and a performance smoke test.
+atomic writes and backup recovery for persistence; empty-world and dead-world resilience for
+the engine; run, resume, stats, the version flag and the interactive shell for the command
+line; payload, dashboard rendering, the four god-mode shocks and a real-socket smoke for the
+observatory; and byte-identical replays of the same seed, staged grazing and hunting
+mechanics, armored-defense arithmetic, a drift-to-speciation run and a performance smoke test.
+
+## 📜 License
+
+MIT - see [LICENSE](LICENSE). Use it, study it, share it, modify it.

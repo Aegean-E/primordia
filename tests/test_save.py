@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from primordia import shocks
 from primordia.engine import Engine
 from primordia.save import SAVE_VERSION, SaveError, load_from, save_to
 from primordia.world import WorldConfig
@@ -62,6 +63,21 @@ class RoundTripTests(unittest.TestCase):
         save_to(engine, self.path)
         data = json.loads(self.path.read_text(encoding="utf-8"))
         self.assertEqual(data["version"], SAVE_VERSION)
+
+    def test_a_shocked_world_round_trips_exactly(self):
+        original = Engine(config=small_config(), seed=4, founders=30)
+        for _ in range(60):
+            original.step()
+        shocks.meteor(original, 8, 5, radius=2)
+        shocks.bloom(original, 4, 4, radius=2, share=0.5)
+        shocks.cull(original, 0.25)
+        shocks.introduce(original, 4)
+        save_to(original, self.path)
+        resumed = load_from(self.path)
+        for _ in range(60):
+            resumed.step()
+            original.step()
+        self.assertEqual(resumed.snapshot_hash(), original.snapshot_hash())
 
 
 class AtomicityTests(unittest.TestCase):

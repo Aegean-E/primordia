@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from primordia import __version__
 from primordia.cli import main
 from primordia.save import load_from
 
@@ -49,6 +50,11 @@ class CliTests(unittest.TestCase):
     def test_usage_errors_exit_two(self):
         code, out, err = self.run_cli(["run", "--ticks", "many"])
         self.assertEqual(code, 2)
+
+    def test_version_flag_prints_the_version(self):
+        code, out, err = self.run_cli(["--version"])
+        self.assertEqual(code, 0, err)
+        self.assertIn(__version__, out)
 
     def test_repl_steps_stats_hashes_saves_and_quits(self):
         script = "step 10\nstats\nhash\nsave {}\nquit\n".format(self.path)

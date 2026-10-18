@@ -5,7 +5,7 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792355849.8879204
+    "updated_at": 1792355999.6469176
   },
   "checkpoints": [
     {
@@ -113,6 +113,26 @@
       "status": "in_progress",
       "timestamp": 1792355849.8879204,
       "timestamp_str": "2026-10-18 23:37:29"
+    },
+    {
+      "task_id": "task-primordia-core-v1",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[6/6] Final hardening and release: edge-case tests (an empty world and a dead world keep ticking; a shocked world still round-trips through a save exactly), a 10k-tick soak on the default world (determinism, bounded fossil memory, throughput), an MIT LICENSE, a 1.0.0 version with a --version flag, and the release notes; then the publish cockpit to close the task.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792355879.7912285,
+      "timestamp_str": "2026-10-18 23:37:59"
+    },
+    {
+      "task_id": "task-primordia-core-v1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[6/6] Hardening and 1.0.0 release complete: resilience tests (empty world and dead world keep ticking; a shocked world round-trips through a save exactly), exact extinction-episode semantics documented, 10k-tick soak verified (812 ticks/s, deterministic across a save/reload at tick 5000, 183 creatures over 69 species, 173 events inside the bounded log), MIT LICENSE, version 1.0.0 with a --version flag (help in 111 ms), 83/83 tests in about 1.7s; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792355999.6469176,
+      "timestamp_str": "2026-10-18 23:39:59"
     }
   ]
 }

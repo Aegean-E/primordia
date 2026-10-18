@@ -1,9 +1,11 @@
-"""The fossil record: species sightings, peaks, extinction events and a bounded event log.
+"""The fossil record: species sightings, peaks, extinction episodes and a bounded event log.
 
 The engine censuses the living population once per tick. `traces` keeps the whole story, one
 row per species id; `events` is a bounded window over the latest moments, so memory never
 grows with run length, and the speciation/extinction counters stay monotonic even when the
-window forgets an old event.
+window forgets an old event. An absence from a census is one extinction episode: a species
+that reappears later clears its extinction and can end again, so the counter counts moments,
+not gravestones.
 """
 
 from __future__ import annotations
@@ -37,7 +39,7 @@ class SpeciesTrace:
 
 
 class FossilRecord:
-    """Sightings and events per species; a species absent from a census is extinct."""
+    """Sightings and events per species; one census miss is one extinction episode."""
 
     def __init__(self, event_cap: int = FOSSIL_EVENT_CAP) -> None:
         self.event_cap = event_cap
@@ -54,7 +56,7 @@ class FossilRecord:
                                  ancestor=ancestor, detail=detail))
 
     def census(self, counts: Mapping[int, int], tick: int) -> None:
-        """Update sightings and peaks from one population count per species; note extinctions."""
+        """Update sightings and peaks from one count per species; a census miss is an episode."""
         for species_id, count in sorted(counts.items()):
             trace = self.traces.get(species_id)
             if trace is None:

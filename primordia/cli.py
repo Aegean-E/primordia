@@ -14,6 +14,7 @@ import contextlib
 import sys
 from typing import List, Optional, Sequence, TextIO
 
+from primordia import __version__
 from primordia.analytics import species_counts, trait_means
 from primordia.engine import Engine
 from primordia.save import SaveError, load_from, save_to
@@ -59,6 +60,7 @@ def _build_parser() -> argparse.ArgumentParser:
         prog="python -m primordia",
         description="A zero-dependency evolution sandbox: seed a biosphere, run its clock,"
                     " watch it speciate.")
+    parser.add_argument("--version", action="version", version=f"primordia {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
 
     run = commands.add_parser("run", help="start a fresh biosphere and step it")

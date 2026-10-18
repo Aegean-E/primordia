@@ -83,6 +83,28 @@ class InvariantTests(unittest.TestCase):
         self.assertGreater(engine.next_cid, before)
 
 
+class ResilienceTests(unittest.TestCase):
+    def test_an_empty_world_keeps_ticking_without_incident(self):
+        engine = small_engine(4, founders=0)
+        for _ in range(50):
+            engine.step()
+        self.assertEqual(engine.tick, 50)
+        self.assertEqual(engine.creatures, [])
+        self.assertEqual(len(engine.registry), 0)
+        self.assertEqual(len(engine.fossil.events), 0)
+
+    def test_a_dead_world_keeps_ticking_and_records_the_extinction(self):
+        engine = small_engine(2, founders=5)
+        engine.step()
+        for creature in engine.creatures:
+            creature.alive = False
+        for _ in range(20):
+            engine.step()
+        self.assertEqual(engine.tick, 21)
+        self.assertEqual(engine.creatures, [])
+        self.assertGreaterEqual(engine.fossil.extinctions, 1)
+
+
 class BehaviourTests(unittest.TestCase):
     def test_grazing_moves_energy_from_the_soil_to_the_grazer(self):
         engine = small_engine(2, founders=0, initial_food_share=0.0)
