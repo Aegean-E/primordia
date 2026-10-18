@@ -5,7 +5,7 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792356666.470943
+    "updated_at": 1792356709.4952726
   },
   "checkpoints": [
     {
@@ -178,6 +178,16 @@
       "status": "in_progress",
       "timestamp": 1792356666.470943,
       "timestamp_str": "2026-10-18 23:51:06"
+    },
+    {
+      "task_id": "task-primordia-audit-v1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/5] Meteor and bloom now sweep a true Euclidean disc (squared distance at most squared radius, boundary inclusive) as their docstrings and the README always promised, instead of a Chebyshev square, for both the tiles they take and the creatures they kill; 1 new geometry test; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792356709.4952726,
+      "timestamp_str": "2026-10-18 23:51:49"
     }
   ]
 }

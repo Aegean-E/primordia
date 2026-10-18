@@ -130,6 +130,29 @@ class IntroduceTests(unittest.TestCase):
             self.assertLessEqual(genetic_distance(creature.genome, founder), SPECIATION_DISTANCE)
 
 
+class DiscGeometryTests(unittest.TestCase):
+    def test_meteor_and_bloom_sweep_a_disc_not_a_square(self):
+        engine = small_engine(founders=0)
+        x, y = 8, 5
+        for ty in range(3, 8):
+            for tx in range(5, 12):
+                tile = engine.world.index(tx, ty)
+                engine.world.terrain[tile] = LAND
+                engine.world.food[tile] = 0.0
+        corner = engine.spawn(flat_genome(), x + 2, y + 1, energy=30.0)
+        inner = engine.spawn(flat_genome(), x + 1, y + 1, energy=30.0)
+        rim = engine.spawn(flat_genome(), x, y + 2, energy=30.0)
+        shocks.meteor(engine, x, y, radius=2)
+        self.assertTrue(corner.alive)
+        self.assertFalse(inner.alive)
+        self.assertFalse(rim.alive)
+        shocks.bloom(engine, x, y, radius=2, share=1.0)
+        cap = engine.world.config.food_cap
+        self.assertEqual(engine.world.food[engine.world.index(x + 1, y + 1)], cap)
+        self.assertEqual(engine.world.food[engine.world.index(x, y + 2)], cap)
+        self.assertEqual(engine.world.food[engine.world.index(x + 2, y + 1)], 0.0)
+
+
 class ValidationTests(unittest.TestCase):
     def test_shocks_reject_impossible_parameters(self):
         engine = small_engine()

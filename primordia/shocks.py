@@ -37,7 +37,7 @@ def meteor(engine: Engine, x: int, y: int, radius: int) -> ShockReport:
         tiles += 1
     killed = 0
     for creature in engine.creatures:
-        if creature.alive and max(abs(creature.x - x), abs(creature.y - y)) <= radius:
+        if creature.alive and _inside(creature.x - x, creature.y - y, radius):
             creature.alive = False
             creature.energy = 0.0
             killed += 1
@@ -93,11 +93,16 @@ def introduce(engine: Engine, count: int) -> ShockReport:
 
 
 def _disc(engine: Engine, x: int, y: int, radius: int):
-    """Every land tile within `radius` Chebyshev steps of `(x, y)`."""
+    """Every land tile within `radius` Euclidean steps of `(x, y)`, boundary included."""
     for ty in range(max(0, y - radius), min(engine.config.height - 1, y + radius) + 1):
         for tx in range(max(0, x - radius), min(engine.config.width - 1, x + radius) + 1):
-            if engine.world.is_land(tx, ty):
+            if _inside(tx - x, ty - y, radius) and engine.world.is_land(tx, ty):
                 yield tx, ty
+
+
+def _inside(dx: int, dy: int, radius: int) -> bool:
+    """True when an offset lies inside the closed disc of `radius`."""
+    return dx * dx + dy * dy <= radius * radius
 
 
 def _check_spot(engine: Engine, x: int, y: int) -> None:

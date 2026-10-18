@@ -7,9 +7,9 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
-- **Total Classes**: `42`
-- **Total Functions / Methods**: `64`
-- **Total Source Lines**: `2812`
+- **Total Classes**: `43`
+- **Total Functions / Methods**: `65`
+- **Total Source Lines**: `2840`
 
 ---
 
@@ -177,7 +177,7 @@
 ### [`primordia/shocks.py`](primordia/shocks.py)
 > *God-mode interventions: meteors, blooms, culls and introductions.*
 
-**Size**: `116` lines (`4781` bytes)
+**Size**: `121` lines (`5001` bytes)
 
 **Classes:**
 - `class ShockReport` - *What one intervention did, for the operator and the tests.*
@@ -187,7 +187,8 @@
 - `def bloom(engine, x, y, radius, share)` - *Feed a disc: its land tiles rise toward the food cap without ever passing it.*
 - `def cull(engine, share)` - *Thin the population: the weakest share (lowest energy, then lowest cid) is removed.*
 - `def introduce(engine, count)` - *Release near-clones of the ancestral lineage onto random land tiles.*
-- `def _disc(engine, x, y, radius)` - *Every land tile within `radius` Chebyshev steps of `(x, y)`.*
+- `def _disc(engine, x, y, radius)` - *Every land tile within `radius` Euclidean steps of `(x, y)`, boundary included.*
+- `def _inside(dx, dy, radius)` - *True when an offset lies inside the closed disc of `radius`.*
 - `def _check_spot(engine, x, y)`
 - `def _check_radius(radius)`
 - `def _check_share(share)`
@@ -423,7 +424,7 @@
 ### [`tests/test_web.py`](tests/test_web.py)
 > *Unit tests for the observatory: state payload, dashboard, god-mode shocks and the server.*
 
-**Size**: `188` lines (`7811` bytes)
+**Size**: `211` lines (`8905` bytes)
 
 **Classes:**
 - `class PayloadTests`
@@ -440,6 +441,8 @@
   - Method `.test_cull_removes_the_weakest_share_deterministically()`
 - `class IntroduceTests`
   - Method `.test_introduce_releases_near_clones_of_the_founder_lineage()`
+- `class DiscGeometryTests`
+  - Method `.test_meteor_and_bloom_sweep_a_disc_not_a_square()`
 - `class ValidationTests`
   - Method `.test_shocks_reject_impossible_parameters()`
 - `class HttpSmokeTests`
