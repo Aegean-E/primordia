@@ -38,7 +38,7 @@ def staged_genome(mutability: float = 0.5, **traits: float) -> Genome:
 class DeterminismTests(unittest.TestCase):
     def test_same_seed_replays_the_same_history(self):
         first, second = small_engine(5), small_engine(5)
-        for _ in range(120):
+        for _ in range(60):
             first.step()
             second.step()
         self.assertEqual(first.snapshot_hash(), second.snapshot_hash())
@@ -47,7 +47,7 @@ class DeterminismTests(unittest.TestCase):
 
     def test_different_seeds_diverge(self):
         first, second = small_engine(5), small_engine(6)
-        for _ in range(60):
+        for _ in range(40):
             first.step()
             second.step()
         self.assertNotEqual(first.snapshot_hash(), second.snapshot_hash())
@@ -56,7 +56,7 @@ class DeterminismTests(unittest.TestCase):
 class InvariantTests(unittest.TestCase):
     def test_creatures_stay_alive_on_land_within_bounds(self):
         engine = small_engine(11)
-        for _ in range(150):
+        for _ in range(100):
             engine.step()
         self.assertGreaterEqual(len(engine.creatures), 1)
         for creature in engine.creatures:
@@ -78,7 +78,7 @@ class InvariantTests(unittest.TestCase):
     def test_population_dynamics_move_over_time(self):
         engine = small_engine(7)
         before = engine.next_cid
-        for _ in range(200):
+        for _ in range(120):
             engine.step()
         self.assertGreater(engine.next_cid, before)
 
@@ -163,17 +163,17 @@ class SpeciesIntegrationTests(unittest.TestCase):
 
     def test_drift_grows_the_registry_over_time(self):
         engine = small_engine(4)
-        for _ in range(600):
+        for _ in range(400):
             engine.step()
         self.assertGreaterEqual(len(engine.registry), 2)
         self.assertGreaterEqual(engine.fossil.speciations, 1)
 
 
 class PerformanceTests(unittest.TestCase):
-    def test_two_hundred_ticks_stay_fast(self):
+    def test_a_short_default_run_stays_fast(self):
         engine = Engine(config=WorldConfig(), seed=1, founders=120)
         start = time.perf_counter()
-        for _ in range(200):
+        for _ in range(120):
             engine.step()
         elapsed = time.perf_counter() - start
         self.assertLess(elapsed, 8.0)

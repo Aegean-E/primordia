@@ -74,3 +74,30 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   pin a seed with measured margin. This amends ADR-002: the forage rule reads best-value tile,
   not richest tile, and the world no longer starts barren; the rest of ADR-002 stands. A save
   must carry species ids and the fossil counters, so milestone 4 serializes them (G-002).
+
+### ADR-004: One versioned JSON save with atomic rotation, and a command line that resumes it exactly
+
+- **Date**: 2026-10-18
+- **Status**: Accepted
+- **Context**: A run that only lives in RAM dies with the process: watching evolution needs
+  pause and resume, and the web observatory (milestone 5) needs a state file to read. Resuming
+  must not disturb the replay contract - the resumed run has to produce the same future as the
+  uninterrupted one - which means the save must carry everything the engine would have kept,
+  including the raw state of its random number generator.
+- **Decision**: `primordia/save.py` writes one versioned JSON snapshot (`SAVE_VERSION`) holding
+  the world's four layers, every creature, the species registry, the fossil record and
+  `random.Random.getstate()`, plus seed, tick and next cid. Writes are atomic: a temp file is
+  flushed and fsynced, the previous save rotates to `.bak`, `os.replace` moves the new file in
+  with retries, and the folder is fsynced where the platform allows. A corrupt primary is
+  quarantined as `.corrupt_<stamp>`, the `.bak` is loaded and written back; when neither is
+  usable, `SaveError` explains why and what to do. `primordia/cli.py` (with `__main__.py`) gives
+  the same engine four doors - `run`, `resume` (in place), `stats` and an interactive `repl` -
+  with injected streams, `Why:`/`Fix:` failures, exit codes 0/1/2 and a `primordia` console
+  script in `pyproject.toml`.
+- **Consequences**: A save is a text file anyone can read and diff; it weighs about 93 KB at
+  default size after three thousand ticks, the RNG state alone being 625 integers - honest, and
+  the web UI can parse the same shape. Resume-exactness is a test: save, load, step both and
+  compare `snapshot_hash` and cids, plus a CLI run pinned against a fresh in-process run.
+  Locking stays out on purpose: `os.replace` guarantees a reader never sees a half-written
+  file, and the design has one writer per save. `SaveError` messages are the pattern for every
+  later failure surface, including the web observatory.

@@ -4,9 +4,9 @@ Primordia is a zero-dependency evolution sandbox: seed a biosphere, run its cloc
 genomes vary, compete and speciate. A run replays exactly from its seed, and a fossil record
 keeps the story of what happened.
 
-> **Status**: milestone 3 of 6 - the genome model, the world, the deterministic engine, the
-> species classifier and the fossil record are in place; persistence, the CLI and the web
-> observatory arrive in the next milestones.
+> **Status**: milestone 4 of 6 - the engine, the species classifier, the fossil record,
+> persistence and the command line are in place; the web observatory and the final hardening
+> pass arrive in the next milestones.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -31,22 +31,27 @@ primordia/
 ├── .aikit/                   <- project memory: record, ledger, decisions, map
 ├── .gitignore                <- transient AIKit state and Python caches excluded
 ├── README.md
-├── pyproject.toml            <- build and package configuration
+├── pyproject.toml            <- build, package configuration and the `primordia` script
 ├── primordia/                <- core package
 │   ├── __init__.py           <- package metadata
+│   ├── __main__.py           <- `python -m primordia` entry point
 │   ├── analytics.py          <- population statistics: counts by species, mean traits
+│   ├── cli.py                <- the command line and the interactive shell
 │   ├── creature.py           <- one genome plus the engine's mutable per-tick state
 │   ├── engine.py             <- the deterministic tick loop
 │   ├── fossil.py             <- the fossil record: sightings, peaks and events per species
 │   ├── genome.py             <- bounded genes and variation operators
+│   ├── save.py               <- versioned atomic saves and corrupt-file recovery
 │   ├── species.py            <- phenetic species: genomes cluster by genetic distance
 │   └── world.py              <- tile grid, food layer and temperature field
 └── tests/                    <- unit test suite
     ├── __init__.py
     ├── test_analytics.py     <- species counts and trait means
+    ├── test_cli.py           <- run, resume, stats and the interactive shell
     ├── test_engine.py        <- determinism, invariants and behavioural mechanics
     ├── test_fossil.py        <- censuses, extinction and the bounded event log
     ├── test_genome.py        <- gene bounds, mutation, crossover and distance
+    ├── test_save.py          <- round trips, atomic writes and backup recovery
     ├── test_species.py       <- classification, ancestry and monotone species ids
     └── test_world.py         <- terrain, food and temperature
 ```
@@ -106,6 +111,25 @@ species (first and last seen, peak population, extinction tick) plus a bounded e
 speciations and extinctions; the counters stay monotone even when the window forgets an old
 event, so a long run costs bounded memory and still tells its whole story.
 
+## 💾 Saves & The Command Line
+
+```bash
+python -m primordia run --seed 7 --ticks 500 --save world.json
+python -m primordia resume world.json --ticks 500     # continues and saves in place
+python -m primordia stats world.json                  # report without stepping
+python -m primordia repl world.json                   # interactive shell
+```
+
+A save is one versioned JSON snapshot: the world's layers, every creature, the species
+registry, the fossil record and the raw state of the engine's `random.Random`. Resuming replays
+the same future the uninterrupted run would have had, and the suite proves it by comparing
+state hashes across a save/load boundary. Writes are atomic - a temp file is fsynced, the old
+save rotates to `.bak` and `os.replace` moves the new file in with retries - a corrupt file is
+quarantined while its `.bak` takes over, and every failure carries a `Why:` and a `Fix:` line
+with exit codes 0, 1 and 2. The shell answers `step [N]`, `stats`, `species [N]`, `fossil [N]`,
+`hash`, `save PATH`, `help` and `quit`; `pip install .` also installs the same commands as a
+`primordia` script.
+
 ## 🧪 Development
 
 The unit suite runs with:
@@ -114,10 +138,11 @@ The unit suite runs with:
 python -m unittest discover
 ```
 
-53 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
+67 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
 operators; terrain, standing biomass, growth and temperature invariants for the world;
 classification, ancestry and monotone ids for the species registry; censuses, extinction and
-the bounded event log for the fossil record; population statistics; and for the engine,
-byte-identical replays of the same seed, world and creature invariants over long runs, staged
-grazing and hunting mechanics, armored-defense arithmetic, a drift-to-speciation run and a
-performance smoke test.
+the bounded event log for the fossil record; population statistics; exact save round trips,
+atomic writes and backup recovery for persistence; run, resume, stats and the interactive
+shell for the command line; and for the engine, byte-identical replays of the same seed, world
+and creature invariants over runs, staged grazing and hunting mechanics, armored-defense
+arithmetic, a drift-to-speciation run and a performance smoke test.

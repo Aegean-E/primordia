@@ -5,7 +5,7 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792355237.5245411
+    "updated_at": 1792355531.0861971
   },
   "checkpoints": [
     {
@@ -73,6 +73,26 @@
       "status": "in_progress",
       "timestamp": 1792355237.5245411,
       "timestamp_str": "2026-10-18 23:27:17"
+    },
+    {
+      "task_id": "task-primordia-core-v1",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[4/6] Implementing persistence and interface: save.py (versioned JSON snapshot of world layers, creatures, registry, fossil record and the exact random.Random state; atomic temp + fsync + os.replace with .bak and corrupt-file quarantine) and cli.py with __main__ (run/resume/stats/repl, injected streams, Why/Fix errors, exit codes 0/1/2). Failing-first tests come first: test_save.py and test_cli.py.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792355274.5362108,
+      "timestamp_str": "2026-10-18 23:27:54"
+    },
+    {
+      "task_id": "task-primordia-core-v1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/6] Persistence and interface complete: save.py writes one versioned JSON snapshot (world layers, creatures, species registry, fossil record, raw random.Random state) atomically with .bak rotation, corrupt-file quarantine and backup recovery; a resumed run replays the exact future (hash equality across save/load, cross-process CLI pin, species and fossil preserved). cli.py plus __main__ give run/resume/stats/repl with injected streams, Why/Fix errors, exit codes 0/1/2 and a console script; REPL shell covers step/stats/species/fossil/hash/save. 67/67 tests in ~1.4s; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792355531.0861971,
+      "timestamp_str": "2026-10-18 23:32:11"
     }
   ]
 }

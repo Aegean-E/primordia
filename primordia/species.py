@@ -9,7 +9,7 @@ fossil record renders.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Sequence, Tuple
 
 from primordia.genome import Genome, genetic_distance
 
@@ -39,6 +39,14 @@ class SpeciesRegistry:
     def get(self, species_id: int) -> Species:
         """The species record for `species_id`, ids being 1-based in founding order."""
         return self._members[species_id - 1]
+
+    @classmethod
+    def from_species(cls, species: Sequence[Species],
+                     distance: float = SPECIATION_DISTANCE) -> "SpeciesRegistry":
+        """Rebuild a registry from stored records, for example when a save resumes."""
+        registry = cls(distance)
+        registry._members.extend(species)
+        return registry
 
     def classify(self, genome: Genome, tick: int, ancestor: int = 0) -> Tuple[int, bool]:
         """The (species_id, is_new) of `genome`; a new species records `ancestor` and `tick`."""

@@ -6,10 +6,10 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `15`
-- **Total Classes**: `27`
-- **Total Functions / Methods**: `13`
-- **Total Source Lines**: `1331`
+- **Total Python Modules**: `20`
+- **Total Classes**: `31`
+- **Total Functions / Methods**: `39`
+- **Total Source Lines**: `1995`
 
 ---
 
@@ -22,6 +22,13 @@
 
 ---
 
+### [`primordia/__main__.py`](primordia/__main__.py)
+> *`python -m primordia` - the command line entry point.*
+
+**Size**: `8` lines (`153` bytes)
+
+---
+
 ### [`primordia/analytics.py`](primordia/analytics.py)
 > *Small pure statistics over a population: counts by species and mean gene values.*
 
@@ -30,6 +37,29 @@
 **Functions:**
 - `def species_counts(creatures)` - *How many living creatures belong to each species id.*
 - `def trait_means(creatures)` - *The population's mean value per gene; all zeros for an empty population.*
+
+---
+
+### [`primordia/cli.py`](primordia/cli.py)
+> *The command line: run a biosphere, resume one, report on it, or step it interactively.*
+
+**Size**: `221` lines (`8689` bytes)
+
+**Functions:**
+- `def main(argv, out, err, stdin)` - *Run one command; returns the exit code: 0 success, 1 failure, 2 usage.*
+- `def _build_parser()`
+- `def _run(args, out)`
+- `def _resume(args, out)`
+- `def _stats(args, out)`
+- `def _repl(args, out, stdin)`
+- `def _advance(engine, ticks)`
+- `def _report(engine, out)`
+- `def _summary_line(engine)`
+- `def _lineage_line(engine)`
+- `def _traits_line(engine)`
+- `def _print_species(engine, limit, out)`
+- `def _print_fossil(engine, limit, out)`
+- `def _count(words, default)`
 
 ---
 
@@ -118,10 +148,34 @@
 
 ---
 
+### [`primordia/save.py`](primordia/save.py)
+> *Persistence: one versioned JSON snapshot carries a whole run across processes.*
+
+**Size**: `251` lines (`9855` bytes)
+
+**Classes:**
+- `class SaveError` - *A save could not be read or written; the message carries Why and Fix lines.*
+  - Method `.__init__(summary, why, fix)`
+
+**Functions:**
+- `def save_to(engine, path)` - *Write the engine's full state to `path` atomically, rotating the old file to `.bak`.*
+- `def load_from(path)` - *Read a saved engine back; quarantine a corrupt file and fall back to its `.bak`.*
+- `def _replace(source, target)` - *`os.replace` with a few immediate retries; a busy indexer or scanner is transient.*
+- `def _sync_directory(folder)` - *Ask the OS to persist the rename; not every platform allows opening a folder.*
+- `def _quarantine(path)` - *Move a corrupt save aside so it can never be mistaken for a good one.*
+- `def _read_json(path)`
+- `def _engine_to_data(engine)`
+- `def _engine_from_data(data)`
+- `def _creature_from(row)`
+- `def _species_from(row)`
+- `def _fossil_from(data)`
+
+---
+
 ### [`primordia/species.py`](primordia/species.py)
 > *Phenetic species: genomes cluster by distance to a founding representative.*
 
-**Size**: `56` lines (`2075` bytes)
+**Size**: `64` lines (`2425` bytes)
 
 **Classes:**
 - `class Species` - *A named lineage: who founded it, when, and from which species it split.*
@@ -129,6 +183,7 @@
   - Method `.__init__(distance)`
   - Method `.__len__()`
   - Method `.get(species_id)` - *The species record for `species_id`, ids being 1-based in founding order.*
+  - Method `.from_species(species, distance)` - *Rebuild a registry from stored records, for example when a save resumes.*
   - Method `.classify(genome, tick, ancestor)` - *The (species_id, is_new) of `genome`; a new species records `ancestor` and `tick`.*
 
 ---
@@ -169,10 +224,29 @@
 
 ---
 
+### [`tests/test_cli.py`](tests/test_cli.py)
+> *Unit tests for the command line: run, resume, stats and the interactive shell.*
+
+**Size**: `63` lines (`2621` bytes)
+
+**Classes:**
+- `class CliTests`
+  - Method `.setUp()`
+  - Method `.run_cli(argv, stdin)`
+  - Method `.test_run_reports_a_summary_and_writes_a_save()`
+  - Method `.test_resume_continues_the_saved_history()`
+  - Method `.test_stats_prints_population_species_and_fossil_counters()`
+  - Method `.test_missing_save_exits_one_with_why_and_fix()`
+  - Method `.test_usage_errors_exit_two()`
+  - Method `.test_repl_steps_stats_hashes_saves_and_quits()`
+  - Method `.test_repl_survives_unknown_commands()`
+
+---
+
 ### [`tests/test_engine.py`](tests/test_engine.py)
 > *Unit tests for the engine: determinism, invariants and the behavioural mechanics.*
 
-**Size**: `179` lines (`7549` bytes)
+**Size**: `179` lines (`7551` bytes)
 
 **Classes:**
 - `class DeterminismTests`
@@ -193,7 +267,7 @@
   - Method `.test_census_populates_the_fossil_record()`
   - Method `.test_drift_grows_the_registry_over_time()`
 - `class PerformanceTests`
-  - Method `.test_two_hundred_ticks_stay_fast()`
+  - Method `.test_a_short_default_run_stays_fast()`
 
 **Functions:**
 - `def small_engine(seed, founders, **overrides)`
@@ -249,6 +323,29 @@
 
 **Functions:**
 - `def genome_with(mutability)` - *A genome centered at 0.5 with one chosen mutability gene.*
+
+---
+
+### [`tests/test_save.py`](tests/test_save.py)
+> *Unit tests for persistence: exact round trips, atomic writes, backup fallback and quarantine.*
+
+**Size**: `113` lines (`5095` bytes)
+
+**Classes:**
+- `class RoundTripTests`
+  - Method `.setUp()`
+  - Method `.test_resumed_run_replays_the_same_history()`
+  - Method `.test_species_registry_and_fossil_record_survive_the_round_trip()`
+  - Method `.test_save_carries_the_format_version()`
+- `class AtomicityTests`
+  - Method `.setUp()`
+  - Method `.test_overwriting_keeps_the_previous_save_as_a_backup()`
+  - Method `.test_a_corrupt_save_falls_back_to_the_backup_and_quarantines_the_wreck()`
+  - Method `.test_double_corruption_raises_with_why_and_fix()`
+  - Method `.test_missing_file_raises_with_guidance()`
+
+**Functions:**
+- `def small_config(**overrides)` - *A fast test world; the overrides let a test pin what it stages.*
 
 ---
 

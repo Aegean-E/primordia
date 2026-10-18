@@ -13,3 +13,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
+
+[project.scripts]
+primordia = "primordia.cli:main"
