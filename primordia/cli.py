@@ -51,6 +51,10 @@ def main(argv: Optional[Sequence[str]] = None, out: Optional[TextIO] = None,
     except SaveError as error:
         print(error, file=err)
         return 1
+    except ValueError as error:
+        print(f"error: {error}", file=err)
+        print("Fix: pass values the world can run with; --help lists the commands", file=err)
+        return 2
     parser.print_usage(err)
     return 2
 

@@ -98,3 +98,26 @@ class TemperatureTests(unittest.TestCase):
             world.update(tick)
             growth.append(world.food[tile] - before)
         self.assertGreater(max(growth), 2.0 * min(growth))
+
+
+class ConfigValidationTests(unittest.TestCase):
+    def test_the_default_config_is_valid(self):
+        WorldConfig()
+
+    def test_impossible_configs_are_refused_at_construction(self):
+        cases = (
+            {"width": 0},
+            {"height": 0},
+            {"day_length": 0},
+            {"food_cap": 0.0},
+            {"food_regrowth": -0.1},
+            {"initial_food_share": 1.5},
+            {"water_ratio": -0.2},
+            {"water_ratio": 1.5},
+            {"temperature_swing": -0.1},
+            {"season_amplitude": 1.5},
+        )
+        for overrides in cases:
+            with self.subTest(overrides=overrides):
+                with self.assertRaises(ValueError):
+                    WorldConfig(**overrides)

@@ -140,3 +140,32 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   10,000-tick default run (about 800 ticks per second, deterministic across a save and reload at
   tick 5,000, 183 creatures over 69 species), a bounded fossil log at 173 events, and the
   83-test suite on the milestone-6 checklist.
+
+### ADR-007: Audit fixes - honest shock geometry, protected saves, validated configs
+
+- **Date**: 2026-10-18
+- **Status**: Accepted
+- **Context**: A post-release audit of 1.0.0 found four classes of defects. The shock
+  documentation promises discs, but `meteor` and `bloom` swept a Chebyshev square. `load_from`
+  treated a save written by a different `SAVE_VERSION` as corruption: it quarantined the file
+  and could overwrite the primary from `.bak`, destroying the newer save. `WorldConfig`
+  accepted values that break deep inside the tick loop (`day_length=0` divides by zero) or
+  silently degrade a run. And the observatory lost every operator-driven change - session
+  steps and all god-mode interventions - when the server exited.
+- **Decision**: `meteor`, `bloom` and their `_disc` helper sweep a true Euclidean disc
+  (distance squared at most radius squared, boundary inclusive). A save version this build
+  cannot read raises `SaveError` with `Why:` and `Fix:` lines and is never quarantined. A
+  missing primary with a live `.bak` restores itself on load, and a failed replace removes its
+  temp file. `WorldConfig` validates its shape, pace, food, water and season ranges at
+  construction, and the CLI turns that `ValueError` into a `Fix:`-carrying exit code 2. The
+  observatory sends `Cache-Control: no-store`, answers `/favicon.ico` with 204, caps POST
+  bodies at 4 KiB, and `web PATH` saves operator-driven changes back to the file on exit when
+  the state changed (compared by `snapshot_hash`). The REPL refuses a zero-row listing count
+  instead of quietly showing ten rows.
+- **Consequences**: version 1.0.1. Shock geometry matches its name and the README; a save is
+  quarantined only when it truly fails to parse, and version mismatches keep their file
+  intact; crash windows between the two replaces have a recovery path; impossible configs fail
+  loudly at construction, so `python -m primordia run --width 0` exits 2 with a message rather
+  than building a zero-tile world. Determinism is untouched: the disc change alters which
+  tiles a shock touches, not the order of any draw, and the suite still replays fixed seeds
+  exactly.

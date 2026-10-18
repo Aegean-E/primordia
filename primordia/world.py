@@ -33,6 +33,27 @@ class WorldConfig:
     temperature_swing: float = 0.30
     season_amplitude: float = 0.75
 
+    def __post_init__(self) -> None:
+        if self.width < 1 or self.height < 1:
+            raise ValueError(f"the world needs a positive shape, got {self.width}x{self.height}")
+        if self.day_length < 1:
+            raise ValueError(f"day_length must be at least 1 tick, got {self.day_length}")
+        if self.food_cap <= 0.0:
+            raise ValueError(f"food_cap must be positive, got {self.food_cap}")
+        if self.food_regrowth < 0.0:
+            raise ValueError(f"food_regrowth cannot be negative, got {self.food_regrowth}")
+        if not 0.0 <= self.initial_food_share <= 1.0:
+            raise ValueError(
+                f"initial_food_share must be within [0, 1], got {self.initial_food_share}")
+        if not 0.0 <= self.water_ratio <= 1.0:
+            raise ValueError(f"water_ratio must be within [0, 1], got {self.water_ratio}")
+        if self.temperature_swing < 0.0:
+            raise ValueError(
+                f"temperature_swing cannot be negative, got {self.temperature_swing}")
+        if not 0.0 <= self.season_amplitude <= 1.0:
+            raise ValueError(
+                f"season_amplitude must be within [0, 1], got {self.season_amplitude}")
+
 
 class World:
     """A mutable tile grid: terrain, a regrowing food layer and a seasonal temperature field."""

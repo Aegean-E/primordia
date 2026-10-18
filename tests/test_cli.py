@@ -51,6 +51,11 @@ class CliTests(unittest.TestCase):
         code, out, err = self.run_cli(["run", "--ticks", "many"])
         self.assertEqual(code, 2)
 
+    def test_an_impossible_world_exits_two_with_a_fix(self):
+        code, out, err = self.run_cli(["run", "--width", "0", "--ticks", "1"])
+        self.assertEqual(code, 2)
+        self.assertIn("Fix:", err)
+
     def test_version_flag_prints_the_version(self):
         code, out, err = self.run_cli(["--version"])
         self.assertEqual(code, 0, err)

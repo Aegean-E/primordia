@@ -7,9 +7,9 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
-- **Total Classes**: `41`
+- **Total Classes**: `42`
 - **Total Functions / Methods**: `64`
-- **Total Source Lines**: `2704`
+- **Total Source Lines**: `2757`
 
 ---
 
@@ -43,7 +43,7 @@
 ### [`primordia/cli.py`](primordia/cli.py)
 > *The command line: run a biosphere, resume one, report on it, or step it interactively.*
 
-**Size**: `243` lines (`9805` bytes)
+**Size**: `247` lines (`9991` bytes)
 
 **Functions:**
 - `def main(argv, out, err, stdin)` - *Run one command; returns the exit code: 0 success, 1 failure, 2 usage.*
@@ -234,10 +234,11 @@
 ### [`primordia/world.py`](primordia/world.py)
 > *Primordia's world: the tile grid, its food layer and its drifting temperature field.*
 
-**Size**: `95` lines (`3885` bytes)
+**Size**: `116` lines (`5074` bytes)
 
 **Classes:**
 - `class WorldConfig` - *The world's shape and pace: fixed at creation and carried by every save.*
+  - Method `.__post_init__()`
 - `class World` - *A mutable tile grid: terrain, a regrowing food layer and a seasonal temperature field.*
   - Method `.__init__(config, rng)`
   - Method `.length()` - *The number of tiles in the grid.*
@@ -270,7 +271,7 @@
 ### [`tests/test_cli.py`](tests/test_cli.py)
 > *Unit tests for the command line: run, resume, stats and the interactive shell.*
 
-**Size**: `69` lines (`2840` bytes)
+**Size**: `74` lines (`3050` bytes)
 
 **Classes:**
 - `class CliTests`
@@ -281,6 +282,7 @@
   - Method `.test_stats_prints_population_species_and_fossil_counters()`
   - Method `.test_missing_save_exits_one_with_why_and_fix()`
   - Method `.test_usage_errors_exit_two()`
+  - Method `.test_an_impossible_world_exits_two_with_a_fix()`
   - Method `.test_version_flag_prints_the_version()`
   - Method `.test_repl_steps_stats_hashes_saves_and_quits()`
   - Method `.test_repl_survives_unknown_commands()`
@@ -454,7 +456,7 @@
 ### [`tests/test_world.py`](tests/test_world.py)
 > *Unit tests for the world: terrain, the food layer and the temperature field.*
 
-**Size**: `100` lines (`3993` bytes)
+**Size**: `123` lines (`4732` bytes)
 
 **Classes:**
 - `class TerrainTests`
@@ -471,6 +473,9 @@
   - Method `.test_temperature_stays_in_the_unit_interval()`
   - Method `.test_temperature_advances_seasonally()`
   - Method `.test_food_growth_follows_the_season()`
+- `class ConfigValidationTests`
+  - Method `.test_the_default_config_is_valid()`
+  - Method `.test_impossible_configs_are_refused_at_construction()`
 
 **Functions:**
 - `def make_world(seed, **overrides)`
