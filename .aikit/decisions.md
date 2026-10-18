@@ -169,3 +169,30 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   than building a zero-tile world. Determinism is untouched: the disc change alters which
   tiles a shock touches, not the order of any draw, and the suite still replays fixed seeds
   exactly.
+
+### ADR-008: Filesystem and socket edges carry the same Why and Fix promise
+
+- **Date**: 2026-10-18
+- **Status**: Accepted
+- **Context**: A second review of 1.0.1 found failure paths that still traceback, hang or
+  destroy state. `save_to` onto a folder renamed the folder to `.bak`; `load_from` on a folder
+  raised a raw `IsADirectoryError`; JSON without a version field fell through as a crash; a
+  quarantine whose `os.replace` failed escaped as an `OSError`. In the observatory, a malformed
+  `Content-Length` crashed the handler thread, a negative one made `read(-n)` wait for EOF, an
+  out-of-range port raised `OverflowError`, `web --ticks` silently dropped its pre-roll because
+  the session hash was sampled after the advance, and a bind beyond loopback exposed a mutating
+  server without warning anyone.
+- **Decision**: `save_to` refuses a directory path before touching the filesystem. `load_from`
+  detects a directory (or an unreadable file) and raises `SaveError` with `Why:` and `Fix:`
+  lines; the same happens when a corrupt file cannot be quarantined, leaving the file in place.
+  JSON that is not an object or has no `version` key is reported as "not a primordia save" and
+  is never quarantined. The observatory validates `Content-Length` before reading (whole,
+  non-negative, within the 4 KiB cap), refuses anything else with the 400 page and closes the
+  connection. `serve` turns a refused bind into a `SaveError` that asks for another port, and
+  prints a no-authentication warning when the bound address is not loopback. The web session
+  hash is captured before `--ticks` advance, so the pre-roll persists on exit like every other
+  operator change while a bare view remains read-only.
+- **Consequences**: version 1.0.2. The `Why:`/`Fix:` contract now holds on the filesystem and
+  socket edges: no destructive rename, no request thread stuck reading, and no silent loss of
+  requested work. The engine, save format and determinism are untouched, so existing saves
+  still load and replay exactly.

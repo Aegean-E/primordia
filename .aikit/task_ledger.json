@@ -5,19 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792360081.99194
+    "updated_at": 1792360219.5191896
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-core-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/6] World and engine complete: seasonal food growth and temperature field; deterministic tick loop (upkeep, aging, satiation-driven foraging, hunting with size armor, crossover and asexual reproduction, carcasses); ADR-002 records the model and its flow-limited attractor; 37/37 tests green in 0.46s, aikit check primordia 4/4 gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792354512.4683905,
-      "timestamp_str": "2026-10-18 23:15:12"
-    },
     {
       "task_id": "task-primordia-core-v1",
       "phase": "phase 3",
@@ -217,6 +207,16 @@
       "status": "in_progress",
       "timestamp": 1792360081.99194,
       "timestamp_str": "2026-10-19 00:48:01"
+    },
+    {
+      "task_id": "task-primordia-fixes-v2",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Release 1.0.2: README documents the filesystem refusals, request-body validation, bind errors, loopback warning and pre-roll persistence with the 106-test tally; ADR-008 records every decision; version bumped in __init__ and pyproject; verified primordia 1.0.2, an exact save/load replay through 300+200 ticks, 106/106 tests and 4/4 gates; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792360219.5191896,
+      "timestamp_str": "2026-10-19 00:50:19"
     }
   ]
 }
