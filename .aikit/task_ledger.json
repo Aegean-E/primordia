@@ -5,7 +5,7 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792354095.0567954
+    "updated_at": 1792354512.4683905
   },
   "checkpoints": [
     {
@@ -33,6 +33,26 @@
       "status": "in_progress",
       "timestamp": 1792354095.0567954,
       "timestamp_str": "2026-10-18 23:08:15"
+    },
+    {
+      "task_id": "task-primordia-core-v1",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[2/6] Implementing the world (terrain, regrowing food layer, seasonal temperature field) and the deterministic engine (spatial hash, metabolism, grazing, hunting, reproduction, death); failing-first tests for world invariants, engine determinism and the behavioural mechanics.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792354286.046307,
+      "timestamp_str": "2026-10-18 23:11:26"
+    },
+    {
+      "task_id": "task-primordia-core-v1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/6] World and engine complete: seasonal food growth and temperature field; deterministic tick loop (upkeep, aging, satiation-driven foraging, hunting with size armor, crossover and asexual reproduction, carcasses); ADR-002 records the model and its flow-limited attractor; 37/37 tests green in 0.46s, aikit check primordia 4/4 gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792354512.4683905,
+      "timestamp_str": "2026-10-18 23:15:12"
     }
   ]
 }

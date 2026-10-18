@@ -1,0 +1,357 @@
+"""The deterministic tick loop: metabolism, sensing, action, birth and death.
+
+One `random.Random` drives every draw in a fixed order, so a seed plus a tick count replays
+the same history exactly, and `snapshot_hash` proves it. Each tick, the world updates first;
+then every creature acts in ascending cid order: it pays upkeep and ages, forages until it can
+afford a litter (hunting if its genes allow, otherwise grazing the richest tile in sight),
+reproduces when a mate is near, and wanders otherwise. Dead bodies return to the soil as food.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import random
+from typing import Dict, List, Optional, Tuple
+
+from primordia.creature import Creature
+from primordia.genome import Genome, crossover, genetic_distance, mutate, random_genome
+from primordia.world import LAND, World, WorldConfig
+
+# Life budget
+START_ENERGY = 45.0
+FOUNDER_DIET_CAP = 0.35
+# Upkeep: paid every tick, scaled by body and habits; temperature mismatch costs extra.
+UPKEEP_BASE = 0.10
+UPKEEP_SIZE = 0.06
+UPKEEP_SPEED = 0.10
+UPKEEP_METABOLISM_SPAN = 0.75
+TEMPERATURE_MISMATCH_COST = 0.35
+PREFERRED_TEMPERATURE_BASE = 0.20
+PREFERRED_TEMPERATURE_SPAN = 0.60
+# Movement: one tile per stride, a fast creature may take a second stride toward its target.
+MOVE_COST_BASE = 0.06
+MOVE_COST_SIZE = 0.20
+MOVE_COST_SPEED = 0.25
+STRIDE_CHANCE_PER_SPEED = 0.60
+SENSE_RADIUS_BASE = 1
+SENSE_RADIUS_GAIN = 3
+# Foraging: falling below breeding condition opens the food search; grazing scales with
+# herbivory, hunting with size.
+GRAZE_BITE_BASE = 1.10
+GRAZE_BITE_SIZE = 1.90
+HUNT_AGGRESSION_MIN = 0.35
+HUNT_DIET_MIN = 0.55
+HUNT_DAMAGE_BASE = 3.0
+HUNT_DAMAGE_SIZE = 9.0
+HUNT_COST = 1.0
+HUNT_ENERGY_GAIN = 0.45
+PREY_SIZE_MARGIN = 0.95
+DEFENSE_FLOOR = 0.25
+DEFENSE_SHARE = 0.60
+CARCASS_BASE = 0.30
+CARCASS_SIZE = 1.40
+# Reproduction: a surplus over the threshold buys a litter; compatible genes invite a mate.
+REPRO_THRESHOLD_BASE = 50.0
+REPRO_THRESHOLD_SIZE = 30.0
+REPRO_INVEST_SHARE = 0.35
+REPRO_CHANCE_BASE = 0.05
+REPRO_CHANCE_FECUNDITY = 0.10
+ASEXUAL_CHANCE_SHARE = 0.40
+MATE_DISTANCE = 0.25
+MATE_ENERGY_SHARE = 0.60
+OFFSPRING_PER_FECUNDITY = 2
+# Aging
+MAX_AGE_BASE = 140
+MAX_AGE_LIFESPAN_GAIN = 360
+
+
+class Engine:
+    """The simulation: a world plus its creatures, advanced one deterministic tick at a time."""
+
+    def __init__(self, config: WorldConfig = WorldConfig(), seed: int = 0,
+                 founders: int = 60) -> None:
+        self.config = config
+        self.seed = seed
+        self.rng = random.Random(seed)
+        self.world = World(config, self.rng)
+        self.tick = 0
+        self.next_cid = 1
+        self.creatures: List[Creature] = []
+        self._found(founders)
+        self.world.update(self.tick)
+
+    def spawn(self, genome: Genome, x: int, y: int, energy: float = START_ENERGY) -> Creature:
+        """Place one creature on a land tile; the door tests and tools stage a known state with."""
+        if not self.world.is_land(x, y):
+            raise ValueError(f"({x}, {y}) is not a land tile; creatures live on land only")
+        creature = self._new_creature(genome, x, y, energy)
+        self.creatures.append(creature)
+        return creature
+
+    def step(self) -> None:
+        """Advance one tick: the world updates, then every living creature acts in cid order."""
+        self.world.update(self.tick)
+        buckets = self._neighbour_hash()
+        newborns: List[Creature] = []
+        for creature in self.creatures:
+            if creature.alive:
+                self._tick_creature(creature, buckets, newborns)
+        for creature in self.creatures:
+            if creature.alive and creature.energy <= 0.0:
+                self._die(creature)
+        self.creatures = [creature for creature in self.creatures if creature.alive]
+        self.creatures.extend(newborns)
+        self.tick += 1
+
+    def snapshot_hash(self) -> str:
+        """A SHA-256 over the tick and the full creature and food state; equal state, equal hash."""
+        digest = hashlib.sha256()
+        digest.update(f"tick={self.tick};next={self.next_cid};".encode("ascii"))
+        for creature in self.creatures:
+            digest.update(f"{creature.cid}|{creature.x}|{creature.y}|{creature.age}"
+                          f"|{creature.energy!r}|{creature.genome.genes!r}|".encode("ascii"))
+        for value in self.world.food:
+            digest.update(f"{value!r};".encode("ascii"))
+        return digest.hexdigest()
+
+    def _found(self, founders: int) -> None:
+        """Seed the first population from random land tiles, biased toward grazing habits."""
+        land_tiles = [tile for tile in range(self.world.length)
+                      if self.world.terrain[tile] == LAND]
+        self.rng.shuffle(land_tiles)
+        for tile in land_tiles[:max(0, min(founders, len(land_tiles)))]:
+            data = random_genome(self.rng).as_dict()
+            data["diet"] = self.rng.uniform(0.0, FOUNDER_DIET_CAP)
+            x, y = self.world.xy(tile)
+            self.spawn(Genome.from_dict(data), x, y)
+
+    def _new_creature(self, genome: Genome, x: int, y: int, energy: float) -> Creature:
+        creature = Creature(cid=self.next_cid, genome=genome, x=x, y=y, energy=energy)
+        self.next_cid += 1
+        return creature
+
+    def _neighbour_hash(self) -> Dict[int, List[Creature]]:
+        """Living creatures by tile index; bucket order is cid order, so scans stay deterministic."""
+        buckets: Dict[int, List[Creature]] = {}
+        for creature in self.creatures:
+            if creature.alive:
+                index = self.world.index(creature.x, creature.y)
+                buckets.setdefault(index, []).append(creature)
+        return buckets
+
+    def _nearby(self, creature: Creature, radius: int,
+                buckets: Dict[int, List[Creature]]) -> List[Creature]:
+        """Living others within `radius` tiles, in a deterministic tile-then-bucket order."""
+        others: List[Creature] = []
+        y_min = max(0, creature.y - radius)
+        y_max = min(self.config.height - 1, creature.y + radius)
+        x_min = max(0, creature.x - radius)
+        x_max = min(self.config.width - 1, creature.x + radius)
+        for y in range(y_min, y_max + 1):
+            row = y * self.config.width
+            for x in range(x_min, x_max + 1):
+                for other in buckets.get(row + x, ()):
+                    if other is not creature and other.alive:
+                        others.append(other)
+        return others
+
+    def _tick_creature(self, creature: Creature, buckets: Dict[int, List[Creature]],
+                       newborns: List[Creature]) -> None:
+        self._pay_upkeep(creature)
+        creature.age += 1
+        if creature.energy <= 0.0 or creature.age > self._max_age(creature):
+            self._die(creature)
+            return
+        if creature.energy < self._satiation(creature):
+            self._seek_energy(creature, buckets)
+            return
+        children = self._try_reproduce(creature, buckets)
+        if children:
+            newborns.extend(children)
+        else:
+            self._wander(creature, buckets)
+
+    def _pay_upkeep(self, creature: Creature) -> None:
+        genome = creature.genome
+        upkeep = UPKEEP_BASE + UPKEEP_SIZE * genome.trait("size") + UPKEEP_SPEED * genome.trait("speed")
+        upkeep *= 1.25 - UPKEEP_METABOLISM_SPAN * genome.trait("metabolism")
+        tile = self.world.index(creature.x, creature.y)
+        mismatch = abs(self.world.temperature[tile] - self._preferred_temperature(creature))
+        creature.energy -= upkeep + TEMPERATURE_MISMATCH_COST * mismatch
+
+    def _seek_energy(self, creature: Creature, buckets: Dict[int, List[Creature]]) -> None:
+        radius = self._sense_radius(creature)
+        if (creature.genome.trait("diet") > HUNT_DIET_MIN
+                and creature.genome.trait("aggression") > HUNT_AGGRESSION_MIN):
+            victim = self._weakest_prey(creature, self._nearby(creature, radius, buckets))
+            if victim is not None:
+                self._attack(creature, victim)
+                return
+        tile = self._richest_tile(creature, radius)
+        if tile is not None:
+            if tile != (creature.x, creature.y):
+                self._move_towards(creature, tile[0], tile[1])
+            self._graze(creature)
+        else:
+            self._wander(creature, buckets)
+
+    def _graze(self, creature: Creature) -> float:
+        """Eat from the current tile; a pure hunter (diet 1) takes nothing."""
+        herbivory = 1.0 - creature.genome.trait("diet")
+        bite = herbivory * (GRAZE_BITE_BASE + GRAZE_BITE_SIZE * creature.genome.trait("size"))
+        if bite <= 0.0:
+            return 0.0
+        tile = self.world.index(creature.x, creature.y)
+        taken = self.world.take_food(tile, bite)
+        creature.energy += taken
+        return taken
+
+    def _attack(self, hunter: Creature, victim: Creature) -> None:
+        """One strike; size shields a comparable victim, and a kill feeds the hunter."""
+        hunter.energy -= HUNT_COST
+        prey_energy = max(0.0, victim.energy)
+        hunter_size = hunter.genome.trait("size")
+        ratio = victim.genome.trait("size") / (hunter_size + 1e-9)
+        armor = DEFENSE_SHARE * max(0.0, min(1.0, (ratio - DEFENSE_FLOOR) / (1.0 - DEFENSE_FLOOR)))
+        victim.energy -= (HUNT_DAMAGE_BASE + HUNT_DAMAGE_SIZE * hunter_size) * (1.0 - armor)
+        if victim.energy <= 0.0:
+            self._die(victim)
+            hunter.energy += HUNT_ENERGY_GAIN * prey_energy
+
+    def _try_reproduce(self, creature: Creature, buckets: Dict[int, List[Creature]]) -> List[Creature]:
+        """A litter when energy allows and a mate shares the genome; asexual births are rarer."""
+        if creature.energy <= self._repro_threshold(creature):
+            return []
+        radius = self._sense_radius(creature)
+        candidates = [
+            other for other in self._nearby(creature, radius, buckets)
+            if genetic_distance(creature.genome, other.genome) <= MATE_DISTANCE
+            and other.energy > MATE_ENERGY_SHARE * self._repro_threshold(other)
+        ]
+        mate = self._nearest(creature, candidates)
+        chance = REPRO_CHANCE_BASE + REPRO_CHANCE_FECUNDITY * creature.genome.trait("fecundity")
+        if mate is not None:
+            if self.rng.random() < chance:
+                return self._birth(creature, (creature, mate))
+        elif self.rng.random() < chance * ASEXUAL_CHANCE_SHARE:
+            return self._birth(creature, (creature,))
+        return []
+
+    def _birth(self, parent: Creature, parents: Tuple[Creature, ...]) -> List[Creature]:
+        """Invest energy into a litter; each child mixes or copies the parental genomes, then mutates."""
+        invest = REPRO_INVEST_SHARE * parent.energy
+        parent.energy -= invest
+        count = 1 + int(OFFSPRING_PER_FECUNDITY * parent.genome.trait("fecundity"))
+        share = invest / count
+        children = []
+        for _ in range(count):
+            if len(parents) == 2:
+                base = crossover(parents[0].genome, parents[1].genome, self.rng)
+            else:
+                base = parent.genome
+            children.append(self._new_creature(mutate(base, self.rng), parent.x, parent.y, share))
+        return children
+
+    def _wander(self, creature: Creature, buckets: Dict[int, List[Creature]]) -> None:
+        """Idle motion: a social pull toward a neighbour first, then a curious random stroll."""
+        social_draw = self.rng.random()
+        curiosity_draw = self.rng.random()
+        if social_draw < creature.genome.trait("social"):
+            partner = self._nearest(creature, self._nearby(creature, self._sense_radius(creature),
+                                                           buckets))
+            if partner is not None:
+                self._move_towards(creature, partner.x, partner.y)
+                return
+        if curiosity_draw < creature.genome.trait("curiosity"):
+            target = self._random_free_neighbour(creature)
+            if target is not None:
+                self._move_towards(creature, target[0], target[1])
+
+    def _move_towards(self, creature: Creature, x: int, y: int) -> None:
+        """Step one tile toward (x, y), preferring the larger axis; a fast creature may stride twice."""
+        if (x, y) == (creature.x, creature.y):
+            return
+        dx, dy = x - creature.x, y - creature.y
+        steps: List[Tuple[int, int]] = []
+        horizontal = (1 if dx > 0 else -1, 0)
+        vertical = (0, 1 if dy > 0 else -1)
+        if abs(dx) >= abs(dy):
+            steps = [horizontal, vertical]
+        else:
+            steps = [vertical, horizontal]
+        steps = [step for step in steps if step[0] != 0 or step[1] != 0]
+        for step_x, step_y in steps:
+            target = (creature.x + step_x, creature.y + step_y)
+            if not self.world.is_land(*target):
+                continue
+            self._move(creature, *target)
+            speed = creature.genome.trait("speed")
+            if self.rng.random() < STRIDE_CHANCE_PER_SPEED * speed:
+                second = (creature.x + step_x, creature.y + step_y)
+                if self.world.is_land(*second):
+                    self._move(creature, *second)
+            return
+
+    def _move(self, creature: Creature, x: int, y: int) -> None:
+        creature.x, creature.y = x, y
+        genome = creature.genome
+        creature.energy -= (MOVE_COST_BASE + MOVE_COST_SIZE * genome.trait("size")
+                            + MOVE_COST_SPEED * genome.trait("speed"))
+
+    def _random_free_neighbour(self, creature: Creature) -> Optional[Tuple[int, int]]:
+        candidates = [(creature.x + dx, creature.y + dy)
+                      for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+                      if self.world.is_land(creature.x + dx, creature.y + dy)]
+        return self.rng.choice(candidates) if candidates else None
+
+    def _richest_tile(self, creature: Creature, radius: int) -> Optional[Tuple[int, int]]:
+        best: Optional[Tuple[int, int]] = None
+        best_food = 0.0
+        y_min = max(0, creature.y - radius)
+        y_max = min(self.config.height - 1, creature.y + radius)
+        x_min = max(0, creature.x - radius)
+        x_max = min(self.config.width - 1, creature.x + radius)
+        for y in range(y_min, y_max + 1):
+            for x in range(x_min, x_max + 1):
+                tile = self.world.index(x, y)
+                if self.world.terrain[tile] != LAND:
+                    continue
+                if self.world.food[tile] > best_food:
+                    best_food = self.world.food[tile]
+                    best = (x, y)
+        return best
+
+    def _weakest_prey(self, hunter: Creature, others: List[Creature]) -> Optional[Creature]:
+        margin = hunter.genome.trait("size") * PREY_SIZE_MARGIN
+        prey = [other for other in others if other.genome.trait("size") <= margin]
+        if not prey:
+            return None
+        return min(prey, key=lambda other: (other.genome.trait("size"), other.cid))
+
+    def _nearest(self, creature: Creature, candidates: List[Creature]) -> Optional[Creature]:
+        if not candidates:
+            return None
+        return min(candidates, key=lambda other: (max(abs(other.x - creature.x), abs(other.y - creature.y)),
+                                                  other.cid))
+
+    def _die(self, creature: Creature) -> None:
+        """Death returns the body to the soil at the creature's tile."""
+        creature.alive = False
+        tile = self.world.index(creature.x, creature.y)
+        self.world.add_food(tile, CARCASS_BASE + CARCASS_SIZE * creature.genome.trait("size"))
+
+    def _sense_radius(self, creature: Creature) -> int:
+        return SENSE_RADIUS_BASE + int(SENSE_RADIUS_GAIN * creature.genome.trait("sense"))
+
+    def _satiation(self, creature: Creature) -> float:
+        """A creature forages until it can afford a litter, then looks for a mate."""
+        return self._repro_threshold(creature)
+
+    def _repro_threshold(self, creature: Creature) -> float:
+        return REPRO_THRESHOLD_BASE + REPRO_THRESHOLD_SIZE * creature.genome.trait("size")
+
+    def _max_age(self, creature: Creature) -> int:
+        return int(MAX_AGE_BASE + MAX_AGE_LIFESPAN_GAIN * creature.genome.trait("lifespan"))
+
+    def _preferred_temperature(self, creature: Creature) -> float:
+        return PREFERRED_TEMPERATURE_BASE + PREFERRED_TEMPERATURE_SPAN * creature.genome.trait("thermophily")
