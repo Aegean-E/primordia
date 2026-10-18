@@ -196,3 +196,35 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   socket edges: no destructive rename, no request thread stuck reading, and no silent loss of
   requested work. The engine, save format and determinism are untouched, so existing saves
   still load and replay exactly.
+
+### ADR-009: Live neighbour bookkeeping, treated snapshots and a full-state hash
+
+- **Date**: 2026-10-19
+- **Status**: Accepted
+- **Context**: A full-code audit found defects that the earlier releases missed. The engine
+  built one spatial hash at the start of a tick and never updated it, so every later creature
+  queried its neighbours at start-of-tick positions: a victim that had moved away could still
+  be struck and a mate that had moved into range was invisible. The founders were jittered
+  around a template but the first jittered genome founded species 1, so 17 of 300 tested seeds
+  split the herd into two species at tick 0. `WorldConfig` accepted `1.5` tiles and `NaN`
+  fields, which failed later inside `range()`/arithmetic. A parseable save with a short layer or
+  an out-of-bounds creature loaded and crashed the next tick with `IndexError`. `snapshot_hash`
+  covered only creatures and food, so RNG-only divergence was invisible, and the analytics
+  helpers counted dead creatures despite their docstrings.
+- **Decision**: The neighbour hash is updated in `_move`, `_die` and `_birth`, and a newborn
+  killed in its birth tick is not retained. The ancestral template is classified as species 1
+  before the jittered founders are spawned, making one species a structural guarantee because
+  the jitter is at most 0.15 RMS inside the 0.18 threshold. `WorldConfig` requires integer
+  shapes and paces plus finite numeric fields; `Engine.spawn` requires integer coordinates and
+  finite non-negative energy. `load_from` verifies the snapshot before returning: layer sizes
+  and ranges, unique cids, land bounds, species references, sequential registry ids and
+  ancestors, birth ticks, fossil traces/events and log capacity. `dump_text` sets
+  `allow_nan=False`, and `save_to` turns the resulting refusal into a `SaveError`. The hash now
+  covers the RNG state, terrain, phases, temperature, registry and fossil record. Analytics
+  ignore dead creatures.
+- **Consequences**: version 1.0.3. Interactions now use actual positions, at the cost of
+  removing the creature from its old bucket on every move; selection outcomes change where
+  stale versus live positions differed, but determinism and the save schema are unchanged. A
+  malformed save that previously loaded is now quarantined with `Why:`/`Fix:` instead of
+  crashing later, and non-finite state is refused rather than written. The richer hash costs
+  about 1 ms per call on a populated world and is only computed on demand.

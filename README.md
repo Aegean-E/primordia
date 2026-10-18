@@ -4,10 +4,10 @@ Primordia is a zero-dependency evolution sandbox: seed a biosphere, run its cloc
 genomes vary, compete and speciate. A run replays exactly from its seed, and a fossil record
 keeps the story of what happened.
 
-> **Status**: v1.0.2 - all six milestones are in: the genome model, the seasonal world and the
+> **Status**: v1.0.3 - all six milestones are in: the genome model, the seasonal world and the
 > deterministic engine, phenetic species with a fossil record, atomic saves and a command line,
-> and the web observatory; post-release audits hardened configs, saves, the filesystem edges and
-> the observatory's request handling.
+> and the web observatory; post-release audits hardened configs, saves, the filesystem edges,
+> the observatory's request handling and the simulation's neighbour bookkeeping.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -100,7 +100,10 @@ rolled against speed, and a dead body returns to the soil as food for the next g
 
 Determinism is the contract: every random draw comes from one seeded `random.Random` in a fixed
 order, so the same seed replays the same history exactly - a property the suite checks by
-comparing state hashes after identical runs.
+comparing full-state hashes that include the raw RNG, climate, species and fossil state. The
+neighbour hash is rebuilt at the start of each tick and updated whenever a creature moves, dies
+or is born, so every interaction is resolved against actual positions rather than the positions
+held when the tick began.
 
 ## 🦕 Species & The Fossil Record
 
@@ -109,7 +112,9 @@ the nearest species when it lies within `SPECIATION_DISTANCE` of that founder; b
 drifting lineage founds a new species and names its ancestor. Species never merge, so ids stay
 monotone and the record is a tree. The founders themselves are one ancestral species - a
 template drawn from the survivable ranges of the cost genes, jittered per founder - so evolution
-starts with real variance inside one lineage.
+starts with real variance inside one lineage. The template itself is the species founder, so
+the jittered herd is always one species: every offset is at most 0.15 per gene, well inside the
+0.18 speciation distance.
 
 Each tick the engine censuses the living population. The fossil record keeps one trace per
 species (first and last seen, peak population, extinction tick) plus a bounded event log of
@@ -134,12 +139,15 @@ state hashes across a save/load boundary. Writes are atomic - a temp file is fsy
 save rotates to `.bak` and `os.replace` moves the new file in with retries - a corrupt file is
 quarantined while its `.bak` takes over, a save written by a different save version is refused
 with a clear error and left untouched, a missing primary with a live `.bak` restores itself,
-and every failure carries a `Why:` and a `Fix:` line with exit codes 0, 1 and 2. Filesystem
-mistakes are refused before anything moves: a path that is a folder is never renamed away, and
-reading one, a file without a save version, or a save whose quarantine cannot move it all end
-in a readable `SaveError` rather than a traceback. The shell answers `step [N]`, `stats`,
-`species [N]`, `fossil [N]`, `hash`, `save PATH`, `help` and `quit`; `pip install .` also
-installs the same commands as a `primordia` script.
+and every failure carries a `Why:` and a `Fix:` line with exit codes 0, 1 and 2. A snapshot is
+verified before it is trusted: layer sizes, terrain and climate ranges, unique creature ids,
+in-bounds land positions, species references and finite numbers must all hold, or the file is
+treated as corrupt rather than crashing the next tick. Filesystem mistakes are refused before
+anything moves: a path that is a folder is never renamed away, and reading one, a file without
+a save version, or a save whose quarantine cannot move it all end in a readable `SaveError`
+rather than a traceback. The shell answers `step [N]`, `stats`, `species [N]`, `fossil [N]`,
+`hash`, `save PATH`, `help` and `quit`; `pip install .` also installs the same commands as a
+`primordia` script.
 
 ## 🔭 The Web Observatory
 
@@ -171,17 +179,18 @@ The unit suite runs with:
 python -m unittest discover
 ```
 
-106 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
-operators; terrain, standing biomass, growth and temperature invariants plus config validation
-for the world; classification, ancestry and monotone ids for the species registry; censuses,
-extinction and the bounded event log for the fossil record; population statistics; exact save
-round trips, atomic writes, backup recovery, version-drift refusal, crash-window recovery and
-folder/quarantine edges for persistence; empty-world and dead-world resilience for the engine;
-run, resume, stats, the version flag, session persistence and the interactive shell for the
-command line; payload, dashboard rendering, disc geometry for the four god-mode shocks, request
-body validation, bind failures and a real-socket smoke for the observatory; and byte-identical
-replays of the same seed, staged grazing and hunting mechanics, armored-defense arithmetic, a
-drift-to-speciation run and a performance smoke test.
+125 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
+operators; terrain, standing biomass, growth and temperature invariants plus config validation,
+including non-finite and non-integer inputs, for the world; classification, ancestry and
+monotone ids for the species registry; censuses, extinction and the bounded event log for the
+fossil record; population statistics; exact save round trips, atomic writes, backup recovery,
+version-drift refusal, crash-window recovery, folder/quarantine edges and snapshot-shape
+verification for persistence; empty-world and dead-world resilience for the engine; run,
+resume, stats, the version flag, session persistence and the interactive shell for the command
+line; payload, dashboard rendering, disc geometry for the four god-mode shocks, request body
+validation, bind failures and a real-socket smoke for the observatory; and byte-identical
+replays of the same seed, live neighbour bookkeeping, staged grazing and hunting mechanics,
+armored-defense arithmetic, a drift-to-speciation run and a performance smoke test.
 
 ## 📜 License
 

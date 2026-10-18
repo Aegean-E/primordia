@@ -5,19 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792361550.9297116
+    "updated_at": 1792361648.333397
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-core-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[5/6] Observatory complete: shocks.py (meteor, bloom, cull, introduce - pure engine mutations adding no state, so saves still resume exactly) and web.py (stdlib http.server: server-rendered food-shaded map with lineage-coloured creature dots, counters, species table, fossil events; ?step=N and meta-refresh auto-play; /state.json; /save download; god-mode POST forms refused with 400 Why/Fix pages, successes redirected with a notice banner); web CLI command. Dashboard renders a default world in about a millisecond (63 KB) and state.json well under one; 79/79 tests in about 1.6s including a real-socket smoke; checklists: passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792355849.8879204,
-      "timestamp_str": "2026-10-18 23:37:29"
-    },
     {
       "task_id": "task-primordia-core-v1",
       "phase": "phase 3",
@@ -222,6 +212,16 @@
       "status": "in_progress",
       "timestamp": 1792361550.9297116,
       "timestamp_str": "2026-10-19 01:12:30"
+    },
+    {
+      "task_id": "task-primordia-hardening-v3",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Release 1.0.3: README documents live neighbour bookkeeping, the guaranteed single founder species, full-state determinism hashing, treated snapshots and the 125-test tally; ADR-009 records the audit, decisions, costs and consequences; version bumped in __init__ and pyproject; verified primordia 1.0.3, friendly exit 2 on an invalid world, exact save/load replay through tick 500, 125/125 tests and 4/4 gates; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792361648.333397,
+      "timestamp_str": "2026-10-19 01:14:08"
     }
   ]
 }
