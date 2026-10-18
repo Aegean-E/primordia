@@ -3,21 +3,12 @@
   "active_task": {
     "task_id": "task-primordia-fixes-v2",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1792360219.5191896
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1792360219.5191896,
+    "completed_at": 1792360237.3339374
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-core-v1",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[3/6] Implementing phenetic species classification (distance to founding genomes, monotone lineage ids), the fossil record (first/last sightings, peaks, extinction events, bounded log) and population analytics; founders become near-clones of one ancestral lineage so speciation is observable; failing-first tests for registry, fossil census and engine integration.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792354582.934591,
-      "timestamp_str": "2026-10-18 23:16:22"
-    },
     {
       "task_id": "task-primordia-core-v1",
       "phase": "phase 4",
@@ -217,6 +208,15 @@
       "status": "in_progress",
       "timestamp": 1792360219.5191896,
       "timestamp_str": "2026-10-19 00:50:19"
+    },
+    {
+      "task_id": "task-primordia-fixes-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'task-primordia-fixes-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792360237.33394,
+      "timestamp_str": "2026-10-19 00:50:37"
     }
   ]
 }
