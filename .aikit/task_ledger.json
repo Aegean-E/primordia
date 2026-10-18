@@ -3,21 +3,12 @@
   "active_task": {
     "task_id": "task-primordia-hardening-v3",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1792361648.333397
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1792361648.333397,
+    "completed_at": 1792361654.5425956
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-core-v1",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[6/6] Final hardening and release: edge-case tests (an empty world and a dead world keep ticking; a shocked world still round-trips through a save exactly), a 10k-tick soak on the default world (determinism, bounded fossil memory, throughput), an MIT LICENSE, a 1.0.0 version with a --version flag, and the release notes; then the publish cockpit to close the task.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792355879.7912285,
-      "timestamp_str": "2026-10-18 23:37:59"
-    },
     {
       "task_id": "task-primordia-core-v1",
       "phase": "phase 4",
@@ -222,6 +213,15 @@
       "status": "in_progress",
       "timestamp": 1792361648.333397,
       "timestamp_str": "2026-10-19 01:14:08"
+    },
+    {
+      "task_id": "task-primordia-hardening-v3",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'task-primordia-hardening-v3' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792361654.5425978,
+      "timestamp_str": "2026-10-19 01:14:14"
     }
   ]
 }
