@@ -3,37 +3,12 @@
   "active_task": {
     "task_id": "task-primordia-audit-v4",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1792433347.0359733
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1792433415.4186687,
+    "completed_at": 1792433415.5775015
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-fixes-v2",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/3] Second hardening pass over the 1.0.1 review: (1) persistence edges - reading a folder or unreadable file becomes a SaveError with Why and Fix instead of a bare OSError, saving onto an existing folder is refused instead of renaming the folder away, a JSON without a version field gets an honest not-a-primordia-save message, and a quarantine that cannot move the file becomes a SaveError; (2) web and CLI edges - a malformed or negative Content-Length is refused with the 400 page instead of a handler crash or a read-until-EOF hang, an out-of-range port or failed bind becomes a SaveError asking for another port, the web pre-roll persists on exit like the rest of the session while a bare view stays read-only, and binding beyond loopback prints a no-authentication warning; (3) docs, ADR-008, version 1.0.2 and the release.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792357075.9343734,
-      "timestamp_str": "2026-10-18 23:57:55",
-      "impact_assessment": {
-        "why": "Reviewing the 1.0.1 changes found failure paths that still traceback or destroy state: save_to onto a folder renames the folder away, stats on a folder raises a raw OSError, a negative Content-Length deadlocks a request thread, web --ticks silently discards its pre-roll, and an unauthenticated socket exposed beyond loopback warns nobody.",
-        "benefits": "The Why and Fix promise now holds on the filesystem and socket edges too; no destructive surprises; a hung request is impossible; requested work survives the session; operators are warned before exposing a mutating server.",
-        "risks": "contract: web --ticks persists on exit and saving onto a folder is refused; dependency: none; concurrency: the lock model is unchanged, only stricter body parsing; state: the engine, saves written so far and determinism are untouched.",
-        "mitigation": "Failing-first tests for every behaviour change; full gates at each milestone; small milestoned commits with explicit staging."
-      }
-    },
-    {
-      "task_id": "task-primordia-fixes-v2",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/3] Persistence edges hardened: reading a folder (or an unreadable file) raises a SaveError with Why and Fix instead of a bare OSError; saving onto an existing folder is refused before anything moves; JSON without a version field reports 'not a primordia save' without quarantine; a quarantine whose move fails raises a SaveError and leaves the file in place. 4 new failing-first tests; 99/99 tests in 1.9s; checklists: passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792359854.7592018,
-      "timestamp_str": "2026-10-19 00:44:14"
-    },
     {
       "task_id": "task-primordia-fixes-v2",
       "phase": "phase 4",
@@ -228,6 +203,25 @@
       "status": "in_progress",
       "timestamp": 1792433347.0359733,
       "timestamp_str": "2026-10-19 21:09:07"
+    },
+    {
+      "task_id": "task-primordia-audit-v4",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[5/5] Delivery closed: the strict Phase 4 gate passed 4/4 and pushed the four audit commits (movement, round trips, integrity, release) to origin; 132/132 tests; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792433415.4186687,
+      "timestamp_str": "2026-10-19 21:10:15"
+    },
+    {
+      "task_id": "task-primordia-audit-v4",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'task-primordia-audit-v4' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792433415.577503,
+      "timestamp_str": "2026-10-19 21:10:15"
     }
   ]
 }
