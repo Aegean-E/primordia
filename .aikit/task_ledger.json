@@ -3,37 +3,12 @@
   "active_task": {
     "task_id": "task-primordia-hygiene-v1",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1792432618.3993459
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1792432650.6827304,
+    "completed_at": 1792432654.091782
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-audit-v1",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/5] Audit and 1.0.1 patch: (1) validate WorldConfig invariants and route bad configs through a friendly CLI error; (2) persistence hardening - version mismatches become readable SaveErrors instead of quarantine, a missing primary with a live backup restores itself, failed replaces leave no temp file; (3) meteor and bloom become true Euclidean discs as documented; (4) web and CLI polish - no-store caching, quiet favicon, capped POST bodies, observatory sessions persist operator changes back to their save on exit, REPL row-count edges; (5) docs, ADR-007, version 1.0.1, full verification and release.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792356518.465743,
-      "timestamp_str": "2026-10-18 23:48:38",
-      "impact_assessment": {
-        "why": "A post-release audit found contract mismatches and durability edges: shock geometry contradicts its documentation, a newer save version is destroyed as corrupt, invalid world configs crash deep in the tick loop, and observatory sessions lose their work.",
-        "benefits": "Honest geometry; user saves never quarantined by version drift; recoverable crash windows; no lost sessions; clearer CLI failures.",
-        "risks": "contract: shock geometry and web exit persistence change observable behaviour; dependency: none; concurrency: the observatory lock model is unchanged; state: validation must not break existing saves or determinism.",
-        "mitigation": "Failing-first tests for every behaviour change; full suite plus a determinism replay after each milestone; docs and ADR updated with the code."
-      }
-    },
-    {
-      "task_id": "task-primordia-audit-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/5] WorldConfig now validates its shape, pace, food, water and season ranges at construction (positive width and height, day_length at least 1, positive food_cap, non-negative food_regrowth and temperature_swing, initial_food_share, water_ratio and season_amplitude within [0, 1]) and the CLI turns the resulting ValueError into a friendly exit 2 with a Fix line; 3 new tests plus 10 sub-cases; checklists: passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792356616.1764016,
-      "timestamp_str": "2026-10-18 23:50:16"
-    },
     {
       "task_id": "task-primordia-audit-v1",
       "phase": "phase 4",
@@ -228,6 +203,25 @@
       "status": "in_progress",
       "timestamp": 1792432618.3993459,
       "timestamp_str": "2026-10-19 20:56:58"
+    },
+    {
+      "task_id": "task-primordia-hygiene-v1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/2] Phase 4 closed under --strict: 4/4 gates and the milestone commit pushed to origin; the project is green again under the widened hygiene scan, with no behaviour change and the map matching the source; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792432650.6827304,
+      "timestamp_str": "2026-10-19 20:57:30"
+    },
+    {
+      "task_id": "task-primordia-hygiene-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'task-primordia-hygiene-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792432654.0917838,
+      "timestamp_str": "2026-10-19 20:57:34"
     }
   ]
 }
