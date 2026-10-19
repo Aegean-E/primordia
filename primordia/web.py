@@ -152,9 +152,117 @@ def render_dashboard(engine: Engine, auto: int = 0, notice: str = "") -> str:
 <ol>{events_html}</ol>
 </aside>
 </div>
+<section class="phylogeny-panel" style="margin-top: 24px;">
+<h2>Phylogenetic tree</h2>
+<div class="tree-container" style="overflow-x: auto; padding: 4px 0;">{build_phylogeny_svg(payload)}</div>
+</section>
 </body>
 </html>
 """
+
+
+def build_phylogeny_svg(payload: Dict[str, Any]) -> str:
+    """Render a phylogenetic tree as an SVG cladogram from lineage data."""
+    lineage = payload.get("lineage", [])
+    if not lineage:
+        return ('<svg width="300" height="60" class="tree-svg">'
+                '<text x="10" y="35" fill="#6f8296" font-family="monospace" font-size="12">'
+                'no lineage data</text></svg>')
+
+    nodes = {item["id"]: item for item in lineage}
+    children: Dict[int, List[int]] = {}
+    roots: List[int] = []
+
+    for item in lineage:
+        anc = item["ancestor"]
+        if anc == 0 or anc not in nodes:
+            roots.append(item["id"])
+        else:
+            children.setdefault(anc, []).append(item["id"])
+
+    coords: Dict[int, Tuple[float, float]] = {}
+    current_y = [24.0]
+    row_height = 36.0
+    col_width = 140.0
+
+    def layout_node(node_id: int, depth: int) -> float:
+        ch = children.get(node_id, [])
+        if not ch:
+            y = current_y[0]
+            current_y[0] += row_height
+        else:
+            child_ys = [layout_node(cid, depth + 1) for cid in ch]
+            y = sum(child_ys) / len(child_ys)
+        x = 30.0 + depth * col_width
+        coords[node_id] = (x, y)
+        return y
+
+    for root_id in roots:
+        layout_node(root_id, 0)
+
+    max_x = max(coords[nid][0] for nid in coords) + 160.0
+    max_y = max(coords[nid][1] for nid in coords) + 30.0
+    svg_width = max(450.0, max_x)
+    svg_height = max(120.0, max_y)
+
+    branches = []
+    for parent_id, ch in children.items():
+        if parent_id not in coords:
+            continue
+        px, py = coords[parent_id]
+        for child_id in ch:
+            if child_id not in coords:
+                continue
+            cx, cy = coords[child_id]
+            mid_x = px + 24.0
+            branches.append(
+                f'<path d="M {px:.1f} {py:.1f} H {mid_x:.1f} V {cy:.1f} H {cx:.1f}" '
+                f'stroke="#2a3d52" stroke-width="2" fill="none"/>'
+            )
+
+    node_elements = []
+    for nid in sorted(coords):
+        nx, ny = coords[nid]
+        info = nodes[nid]
+        is_alive = info["alive"] > 0
+        hue = (nid * 137) % 360
+        circle_color = f"hsl({hue}, 80%, 60%)" if is_alive else "#4a5568"
+        radius = 6 if is_alive else 4
+        stroke = "#ffffff" if is_alive else "#2d3748"
+
+        status_text = f"alive ({info['alive']})" if is_alive else f"extinct t:{info['extinct_tick'] or '?'}"
+        status_color = "#9fd0a8" if is_alive else "#6f8296"
+        label_class = "node-alive" if is_alive else "node-extinct"
+        tooltip = (
+            f"Species {nid}&#10;"
+            f"Ancestor: {info['ancestor'] or 'None (founder)'}&#10;"
+            f"Born tick: {info['birth_tick']}&#10;"
+            f"Peak population: {info['peak']}&#10;"
+            f"Status: {status_text}"
+        )
+
+        node_elements.append(
+            f'<g class="node {label_class}">'
+            f'<title>{tooltip}</title>'
+            f'<circle cx="{nx:.1f}" cy="{ny:.1f}" r="{radius}" fill="{circle_color}" '
+            f'stroke="{stroke}" stroke-width="1.5"/>'
+            f'<text x="{nx + 10:.1f}" y="{ny + 4:.1f}" fill="#d7e0ea" '
+            f'font-family="ui-monospace, monospace" font-size="12" '
+            f'font-weight="{600 if is_alive else 400}">sp #{nid}</text>'
+            f'<text x="{nx + 62:.1f}" y="{ny + 4:.1f}" fill="{status_color}" '
+            f'font-family="ui-monospace, monospace" font-size="10">[{status_text}]</text>'
+            f'</g>'
+        )
+
+    return (
+        f'<svg width="{int(svg_width)}" height="{int(svg_height)}" '
+        f'viewBox="0 0 {int(svg_width)} {int(svg_height)}" '
+        f'class="tree-svg" style="background:#0e141b; border-radius:6px; '
+        f'border:1px solid #1a2430; display:block;">'
+        f'{"".join(branches)}'
+        f'{"".join(node_elements)}'
+        f'</svg>'
+    )
 
 
 def _map_html(engine: Engine, payload: Dict[str, Any]) -> str:

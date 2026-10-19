@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
-- **Total Classes**: `47`
-- **Total Top-Level Functions**: `76`
-- **Total Class Methods**: `199`
-- **Total Source Lines**: `3695`
+- **Total Classes**: `48`
+- **Total Top-Level Functions**: `77`
+- **Total Class Methods**: `202`
+- **Total Source Lines**: `3833`
 
 ---
 
@@ -221,11 +221,12 @@
 ### [`primordia/web.py`](primordia/web.py)
 > *The observatory: a local web view of a running world, with god-mode interventions.*
 
-**Size**: `389` lines (`18091` bytes)
+**Size**: `497` lines (`22184` bytes)
 
 **Functions:**
 - `def state_payload(engine)` - *The observable facts of one world, as JSON-ready data.*
 - `def render_dashboard(engine, auto, notice)` - *The whole dashboard as one self-contained HTML page.*
+- `def build_phylogeny_svg(payload)` - *Render a phylogenetic tree as an SVG cladogram from lineage data.*
 - `def _map_html(engine, payload)` - *The tile grid: food shaded green, water blue, creatures dotted by lineage colour.*
 - `def _god_forms(cx, cy, width, height)` - *The intervention forms, pre-filled with the world's centre.*
 - `def make_handler(engine, lock, quiet)` - *The HTTP handler bound to one engine; every engine touch happens under `lock`.*
@@ -475,7 +476,7 @@
 ### [`tests/test_web.py`](tests/test_web.py)
 > *Unit tests for the observatory: state payload, dashboard, god-mode shocks and the server.*
 
-**Size**: `384` lines (`16700` bytes)
+**Size**: `414` lines (`18056` bytes)
 
 **Classes:**
 - `class PayloadTests`
@@ -485,6 +486,10 @@
 - `class DashboardTests`
   - Method `.test_dashboard_carries_the_map_the_tables_and_the_controls()`
   - Method `.test_auto_refresh_is_optional()`
+  - Method `.test_dashboard_renders_phylogenetic_tree()`
+- `class PhylogenyTests`
+  - Method `.test_empty_lineage_renders_fallback_svg()`
+  - Method `.test_populated_lineage_renders_cladogram_nodes_and_branches()`
 - `class MeteorTests`
   - Method `.test_meteor_strips_food_and_kills_within_its_radius()`
 - `class BloomTests`

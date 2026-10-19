@@ -14,7 +14,7 @@ from primordia.engine import Engine
 from primordia.genome import GENES, Genome, genetic_distance
 from primordia.save import SAVE_VERSION, SaveError
 from primordia.species import SPECIATION_DISTANCE
-from primordia.web import make_server, render_dashboard, serve, state_payload
+from primordia.web import build_phylogeny_svg, make_server, render_dashboard, serve, state_payload
 from primordia.world import LAND, WorldConfig
 
 
@@ -90,6 +90,36 @@ class DashboardTests(unittest.TestCase):
         engine = small_engine()
         self.assertNotIn("http-equiv", render_dashboard(engine))
         self.assertIn("http-equiv", render_dashboard(engine, auto=2))
+
+    def test_dashboard_renders_phylogenetic_tree(self):
+        engine = small_engine(seed=10, founders=25)
+        for _ in range(80):
+            engine.step()
+        page = render_dashboard(engine)
+        self.assertIn("phylogen", page.lower())
+        self.assertIn("<svg", page)
+
+
+class PhylogenyTests(unittest.TestCase):
+    def test_empty_lineage_renders_fallback_svg(self):
+        svg = build_phylogeny_svg({"lineage": []})
+        self.assertIn("<svg", svg)
+        self.assertIn("no lineage data", svg)
+
+    def test_populated_lineage_renders_cladogram_nodes_and_branches(self):
+        lineage = [
+            {"id": 1, "ancestor": 0, "birth_tick": 0, "alive": 40, "peak": 50, "extinct_tick": None},
+            {"id": 2, "ancestor": 1, "birth_tick": 20, "alive": 15, "peak": 20, "extinct_tick": None},
+            {"id": 3, "ancestor": 1, "birth_tick": 25, "alive": 0, "peak": 5, "extinct_tick": 40},
+            {"id": 4, "ancestor": 2, "birth_tick": 35, "alive": 8, "peak": 8, "extinct_tick": None},
+        ]
+        svg = build_phylogeny_svg({"lineage": lineage})
+        self.assertIn("<svg", svg)
+        self.assertIn("<path", svg)  # branch connector
+        for sp in (1, 2, 3, 4):
+            self.assertIn(f"sp #{sp}", svg)
+        self.assertIn("alive (40)", svg)
+        self.assertIn("extinct t:40", svg)
 
 
 class MeteorTests(unittest.TestCase):
