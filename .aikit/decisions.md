@@ -258,3 +258,29 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   `Why:`/`Fix:`, and direct shock API misuse raises a readable `ValueError` instead of a
   `TypeError`. Engine determinism for valid states, the save schema's existing fields and the
   web/CLI contracts are otherwise unchanged.
+
+### ADR-011: Web observatory cladogram, ecology time-series charts and macro shocks
+
+- **Date**: 2026-10-19
+- **Status**: Accepted
+- **Context**: The Web Observatory provided tile-map rendering, species counts and four localized
+  shocks, but lacked tools to track evolutionary history over extended runs: operators could not
+  visualize the phylogenetic cladogram of radiating lineages or monitor population and trait
+  dynamics over time. Additionally, operators needed macro-level interventions to test environmental
+  pressures (global cooling) and mutagenic radiation bursts.
+- **Decision**: Added two new god-mode interventions to `primordia/shocks.py` and the web UI:
+  `ice_age` (chills land food across the grid and imposes thermophily-scaled energy stress) and
+  `radiation_burst` (samples living creatures deterministically via the engine RNG, mutates their
+  genomes, and immediately records speciations if genetic distance exceeds the threshold). Both
+  shocks mutate only state the engine already carries, preserving save schema version 1 and replay
+  determinism. `state_payload` now includes a complete `lineage` array (every species in the
+  registry, its ancestor, birth tick, living population, peak and extinction tick).
+  `build_phylogeny_svg` renders an interactive orthogonal cladogram SVG displaying all ancestral
+  connections, color-coded living/extinct status nodes, and rich tooltip metadata.
+  `build_population_svg` and `build_traits_svg` generate crisp inline SVG charts tracking
+  population, living species, and five key trait trajectories (diet, size, speed, metabolism,
+  thermophily) over session history. `/history.json` serves the recorded time-series.
+- **Consequences**: version 1.0.5. The observatory becomes an interactive evolutionary workbench
+  with zero third-party dependencies and 100% offline standard-library rendering. Save format
+  schemas and engine determinism contracts remain completely intact. 10 new tests bring the unit
+  suite tally from 132 to 142 tests.

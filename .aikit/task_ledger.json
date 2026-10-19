@@ -5,19 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792440417.4457211
+    "updated_at": 1792440618.9564843
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-hardening-v3",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/4] Input and snapshot integrity: WorldConfig now requires integer width/height/day_length and finite numeric fields, so NaN, infinity, strings and 1.5-tile worlds fail at construction instead of deep in world/engine code; Engine.spawn refuses non-finite/negative energy and non-integer coordinates; save loading verifies layer lengths, terrain/food/temperature/phase ranges, unique cids, in-bounds land positions, species references, sequential registry ids, ancestors, birth ticks, fossil traces/events and capacity; dump_text refuses NaN (save_to turns it into a SaveError) and a directory .bak is treated as unusable. 12 new tests; 123/123 in 2.5s; long-run save/load hash equal with 19 species and 29 events; 4/4 gates; checklists: passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792361485.6763642,
-      "timestamp_str": "2026-10-19 01:11:25"
-    },
     {
       "task_id": "task-primordia-hardening-v3",
       "phase": "phase 4",
@@ -222,6 +212,16 @@
       "status": "in_progress",
       "timestamp": 1792440417.4457211,
       "timestamp_str": "2026-10-19 23:06:57"
+    },
+    {
+      "task_id": "task-primordia-observatory-v5",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[5/5] Release 1.0.5: README documents the two new macro shocks (ice_age and radiation_burst), the interactive phylogenetic cladogram, and the ecology time-series SVG charts with the 142-test tally; ADR-011 records the architecture and decisions; version bumped to 1.0.5 in __init__ and pyproject; 142/142 tests pass; 4/4 gates; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792440618.9564843,
+      "timestamp_str": "2026-10-19 23:10:18"
     }
   ]
 }

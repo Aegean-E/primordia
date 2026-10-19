@@ -4,9 +4,10 @@ Primordia is a zero-dependency evolution sandbox: seed a biosphere, run its cloc
 genomes vary, compete and speciate. A run replays exactly from its seed, and a fossil record
 keeps the story of what happened.
 
-> **Status**: v1.0.4 - all six milestones are in: the genome model, the seasonal world and the
+> **Status**: v1.0.5 - all six milestones are in: the genome model, the seasonal world and the
 > deterministic engine, phenetic species with a fossil record, atomic saves and a command line,
-> and the web observatory; post-release audits hardened configs, saves, the filesystem edges,
+> and the web observatory with interactive phylogenetic cladograms, ecology time-series charts,
+> and six god-mode shocks; post-release audits hardened configs, saves, the filesystem edges,
 > the observatory's request handling, the simulation's neighbour bookkeeping and blocked steps,
 > and the round-trip, intervention-input and snapshot-date contracts.
 
@@ -45,9 +46,9 @@ primordia/
 │   ├── fossil.py             <- the fossil record: sightings, peaks and events per species
 │   ├── genome.py             <- bounded genes and variation operators
 │   ├── save.py               <- versioned atomic saves and corrupt-file recovery
-│   ├── shocks.py             <- god-mode interventions: meteor, bloom, cull, introduce
+│   ├── shocks.py             <- god-mode interventions: meteor, bloom, cull, introduce, ice_age, radiation_burst
 │   ├── species.py            <- phenetic species: genomes cluster by genetic distance
-│   ├── web.py                <- the observatory: a local web view of a running world
+│   ├── web.py                <- the observatory: cladogram, trends charts, local web view
 │   └── world.py              <- tile grid, food layer and temperature field
 └── tests/                    <- unit test suite
     ├── __init__.py
@@ -163,17 +164,28 @@ The observatory is a standard-library-only server rendering one world: a food-sh
 every creature dotted in its lineage's colour, the population and fossil counters, the species
 table and the recent fossil events. `?step=N` advances the clock before rendering and
 `?step=N&auto=S` adds a meta refresh so a tab can watch a world live; `/state.json` serves the
-same facts as data, and `/save` downloads the standard save file.
+same facts as data, `/history.json` serves the recorded time-series trend history, and `/save`
+downloads the standard save file.
 
-God mode is four interventions - `meteor` (burn a disc of food and everyone in it), `bloom`
-(feed a disc), `cull` (thin the weakest share) and `introduce` (release near-clones of the
-ancestral lineage). Each one mutates only state the engine already carries, so a shocked world
-still saves, loads and resumes exactly. When given a save file, the observatory writes the
-operator-driven changes - a `--ticks` pre-roll, session steps and shocks - back to it when the
-server exits, and leaves an untouched save alone. A malformed, negative or oversized
-`Content-Length` is answered with the 400 refusal page instead of a crashed or hung request, a
-port the OS refuses becomes a readable error asking for another one, and binding beyond
-loopback prints a warning that the mutating server has no authentication.
+Below the map, the observatory renders two rich vector views:
+1. **Ecology Trends & Population History**: inline SVG charts tracking total population, living
+   species counts, and five key trait trajectories (`diet`, `size`, `speed`, `metabolism`,
+   `thermophily`) across recent simulation ticks.
+2. **Interactive Phylogenetic Cladogram**: an SVG cladogram rendering the complete branching
+   tree of all lineages ever founded, color-coded by lineage hue, with visual distinctions
+   between living and extinct species, birth ticks, and rich tooltip metadata.
+
+God mode provides six interventions - `meteor` (burn a disc of food and everyone in it), `bloom`
+(feed a disc), `cull` (thin the weakest share), `introduce` (release near-clones of the
+ancestral lineage), `ice_age` (chills land food across the grid and imposes thermophily stress),
+and `radiation_burst` (irradiates a share of living creatures, inducing mutations and speciation).
+Each one mutates only state the engine already carries, so a shocked world still saves, loads and
+resumes exactly. When given a save file, the observatory writes the operator-driven changes -
+a `--ticks` pre-roll, session steps and shocks - back to it when the server exits, and leaves an
+untouched save alone. A malformed, negative or oversized `Content-Length` is answered with the
+400 refusal page instead of a crashed or hung request, a port the OS refuses becomes a readable
+error asking for another one, and binding beyond loopback prints a warning that the mutating
+server has no authentication.
 
 ## 🧪 Development
 
@@ -183,7 +195,7 @@ The unit suite runs with:
 python -m unittest discover
 ```
 
-132 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
+142 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
 operators; terrain, standing biomass, growth and temperature invariants plus config validation,
 including non-finite and non-integer inputs, for the world; classification, ancestry and
 monotone ids for the species registry; censuses, extinction and the bounded event log for the
@@ -191,12 +203,12 @@ fossil record; population statistics; exact save round trips, atomic writes, bac
 version-drift refusal, crash-window recovery, folder/quarantine edges and snapshot-shape
 verification for persistence; empty-world and dead-world resilience for the engine; run,
 resume, stats, the version flag, session persistence and the interactive shell for the command
-line; payload, dashboard rendering, disc geometry for the four god-mode shocks, request body
-validation, bind failures and a real-socket smoke for the observatory; byte-identical replays
-of the same seed, live neighbour bookkeeping, staged grazing and hunting mechanics,
-armored-defense arithmetic, a drift-to-speciation run, a blocked direct step that never
-sidesteps, integer-energy and custom-threshold round trips, typed shock inputs, refused
-snapshot dates and a performance smoke test.
+line; payload, dashboard rendering, disc geometry for god-mode shocks, request body
+validation, bind failures, real-socket smoke, full lineage payloads, phylogenetic cladograms,
+and time-series trend SVG charts for the observatory; byte-identical replays of the same seed,
+live neighbour bookkeeping, staged grazing and hunting mechanics, armored-defense arithmetic,
+a drift-to-speciation run, a blocked direct step that never sidesteps, integer-energy and
+custom-threshold round trips, typed shock inputs, refused snapshot dates and a performance smoke test.
 
 ## 📜 License
 
