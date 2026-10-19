@@ -168,6 +168,21 @@ class ValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             shocks.introduce(engine, 0)
 
+    def test_shocks_refuse_values_that_are_not_whole_numbers(self):
+        engine = small_engine()
+        calls = (
+            lambda: shocks.meteor(engine, 1.5, 0, radius=1),
+            lambda: shocks.meteor(engine, 0, 0, radius=1.5),
+            lambda: shocks.bloom(engine, 0.5, 0, radius=1),
+            lambda: shocks.introduce(engine, 1.5),
+            lambda: shocks.cull(engine, "0.5"),
+            lambda: shocks.meteor(engine, True, 0, radius=1),
+        )
+        for call in calls:
+            with self.subTest(call=call):
+                with self.assertRaises(ValueError):
+                    call()
+
 
 class HttpSmokeTests(unittest.TestCase):
     @classmethod

@@ -5,19 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792433180.3564217
+    "updated_at": 1792433256.3825576
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-audit-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[5/5] Release 1.0.1: README reflects the audit (status v1.0.1, save-version refusal and crash-window recovery, observatory session persistence, 95-test tally), ADR-007 records every decision, version bumped in __init__ and pyproject, verified --version 1.0.1, same-seed hash equality and an exact save/load replay over 400 ticks; checklists: passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792356809.877789,
-      "timestamp_str": "2026-10-18 23:53:29"
-    },
     {
       "task_id": "task-primordia-audit-v1",
       "phase": "completed",
@@ -227,6 +217,16 @@
       "status": "in_progress",
       "timestamp": 1792433180.3564217,
       "timestamp_str": "2026-10-19 21:06:20"
+    },
+    {
+      "task_id": "task-primordia-audit-v4",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/5] Integrity fixed: shocks now reject non-whole x/y/radius/count and non-numeric or boolean shares with a readable ValueError (floats used to reach range() as TypeError; string shares failed comparisons); snapshot verification refuses ages outside [0, tick], sighting windows where first_seen is after last_seen or last_seen is in the future, extinction ticks beyond the snapshot and events with a future tick or an ancestor outside the lineage. 2 new failing-first tests with 6 shock sub-cases and 5 date sub-cases; 132/132 tests in 2.6s; 4/4 gates; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792433256.3825576,
+      "timestamp_str": "2026-10-19 21:07:36"
     }
   ]
 }

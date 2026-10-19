@@ -193,6 +193,44 @@ class SnapshotValidationTests(unittest.TestCase):
         data["species"] = []
         self.assert_refused(data)
 
+    def test_an_age_outside_the_run_is_refused(self):
+        for age in (-1, 10 ** 6):
+            with self.subTest(age=age):
+                data = self.saved_data()
+                data["creatures"][0]["age"] = age
+                self.assert_refused(data)
+
+    def test_impossible_fossil_dates_are_refused(self):
+        def stamped_data() -> dict:
+            engine = Engine(config=small_config(), seed=3, founders=10)
+            for _ in range(20):
+                engine.step()
+            engine.fossil.record_speciation(tick=engine.tick, species_id=1, ancestor=0,
+                                            detail="probe")
+            save_to(engine, self.path)
+            return json.loads(self.path.read_text(encoding="utf-8"))
+
+        def trace(data: dict) -> dict:
+            return data["fossil"]["traces"][str(next(iter(data["fossil"]["traces"])))]
+
+        cases = {
+            "first after last": lambda data: trace(data).update(
+                {"first_seen": data["tick"], "last_seen": 0}),
+            "future sighting": lambda data: trace(data).update(
+                {"last_seen": data["tick"] + 1}),
+            "future extinction": lambda data: trace(data).__setitem__(
+                "extinct_tick", data["tick"] + 1),
+            "future event": lambda data: data["fossil"]["events"][0].__setitem__(
+                "tick", data["tick"] + 1),
+            "impossible ancestor": lambda data: data["fossil"]["events"][0].__setitem__(
+                "ancestor", 99),
+        }
+        for name, mutate in cases.items():
+            with self.subTest(case=name):
+                data = stamped_data()
+                mutate(data)
+                self.assert_refused(data)
+
     def test_duplicate_creature_ids_are_refused(self):
         data = self.saved_data()
         data["creatures"][1]["cid"] = data["creatures"][0]["cid"]

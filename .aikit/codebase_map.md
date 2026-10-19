@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
 - **Total Classes**: `45`
-- **Total Top-Level Functions**: `73`
-- **Total Class Methods**: `192`
-- **Total Source Lines**: `3484`
+- **Total Top-Level Functions**: `74`
+- **Total Class Methods**: `195`
+- **Total Source Lines**: `3557`
 
 ---
 
@@ -154,7 +154,7 @@
 ### [`primordia/save.py`](primordia/save.py)
 > *Persistence: one versioned JSON snapshot carries a whole run across processes.*
 
-**Size**: `394` lines (`17489` bytes)
+**Size**: `401` lines (`18042` bytes)
 
 **Classes:**
 - `class SaveError` - *A save could not be read or written; the message carries Why and Fix lines.*
@@ -171,7 +171,7 @@
 - `def _engine_to_data(engine)`
 - `def _engine_from_data(data)`
 - `def _verify_engine(engine)` - *Reject a parseable but inconsistent snapshot before any tick can crash on it.*
-- `def _verify_fossil(fossil, species_total)` - *Keep traces and events inside the registry and the declared event window.*
+- `def _verify_fossil(fossil, species_total, tick)` - *Keep traces and events inside the registry, the run and the declared event window.*
 - `def _creature_from(row)`
 - `def _species_from(row)`
 - `def _fossil_from(data)`
@@ -181,7 +181,7 @@
 ### [`primordia/shocks.py`](primordia/shocks.py)
 > *God-mode interventions: meteors, blooms, culls and introductions.*
 
-**Size**: `121` lines (`5001` bytes)
+**Size**: `134` lines (`5585` bytes)
 
 **Classes:**
 - `class ShockReport` - *What one intervention did, for the operator and the tests.*
@@ -193,6 +193,7 @@
 - `def introduce(engine, count)` - *Release near-clones of the ancestral lineage onto random land tiles.*
 - `def _disc(engine, x, y, radius)` - *Every land tile within `radius` Euclidean steps of `(x, y)`, boundary included.*
 - `def _inside(dx, dy, radius)` - *True when an offset lies inside the closed disc of `radius`.*
+- `def _check_whole(name, value)` - *Refuse floats and booleans before they reach a range() or a tile index.*
 - `def _check_spot(engine, x, y)`
 - `def _check_radius(radius)`
 - `def _check_share(share)`
@@ -402,7 +403,7 @@
 ### [`tests/test_save.py`](tests/test_save.py)
 > *Unit tests for persistence: exact round trips, atomic writes, backup fallback and quarantine.*
 
-**Size**: `320` lines (`13916` bytes)
+**Size**: `358` lines (`15622` bytes)
 
 **Classes:**
 - `class RoundTripTests`
@@ -427,6 +428,8 @@
   - Method `.test_a_creature_with_an_unknown_species_is_refused()`
   - Method `.test_a_creature_with_non_finite_energy_is_refused()`
   - Method `.test_a_missing_species_record_is_refused()`
+  - Method `.test_an_age_outside_the_run_is_refused()`
+  - Method `.test_impossible_fossil_dates_are_refused()`
   - Method `.test_duplicate_creature_ids_are_refused()`
   - Method `.test_saving_non_finite_state_is_a_save_error()`
   - Method `.test_a_directory_backup_is_unusable_instead_of_a_raw_oserror()`
@@ -470,7 +473,7 @@
 ### [`tests/test_web.py`](tests/test_web.py)
 > *Unit tests for the observatory: state payload, dashboard, god-mode shocks and the server.*
 
-**Size**: `295` lines (`12733` bytes)
+**Size**: `310` lines (`13353` bytes)
 
 **Classes:**
 - `class PayloadTests`
@@ -491,6 +494,7 @@
   - Method `.test_meteor_and_bloom_sweep_a_disc_not_a_square()`
 - `class ValidationTests`
   - Method `.test_shocks_reject_impossible_parameters()`
+  - Method `.test_shocks_refuse_values_that_are_not_whole_numbers()`
 - `class HttpSmokeTests`
   - Method `.setUpClass()`
   - Method `.tearDownClass()`

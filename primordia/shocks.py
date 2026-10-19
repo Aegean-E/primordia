@@ -7,6 +7,7 @@ state of its own, so a shocked world still saves, loads and resumes exactly (ADR
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from primordia.engine import FOUNDER_JITTER, Engine
@@ -74,6 +75,7 @@ def cull(engine: Engine, share: float) -> ShockReport:
 
 def introduce(engine: Engine, count: int) -> ShockReport:
     """Release near-clones of the ancestral lineage onto random land tiles."""
+    _check_whole("count", count)
     if not 1 <= count <= MAX_INTRODUCTION:
         raise ValueError(f"count must be between 1 and {MAX_INTRODUCTION}")
     if len(engine.registry) == 0:
@@ -105,17 +107,28 @@ def _inside(dx: int, dy: int, radius: int) -> bool:
     return dx * dx + dy * dy <= radius * radius
 
 
+def _check_whole(name: str, value: object) -> None:
+    """Refuse floats and booleans before they reach a range() or a tile index."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{name} must be a whole number, got {value!r}")
+
+
 def _check_spot(engine: Engine, x: int, y: int) -> None:
+    _check_whole("x", x)
+    _check_whole("y", y)
     if not (0 <= x < engine.config.width and 0 <= y < engine.config.height):
         raise ValueError(f"({x}, {y}) is outside the {engine.config.width}x"
                          f"{engine.config.height} world")
 
 
 def _check_radius(radius: int) -> None:
+    _check_whole("radius", radius)
     if not 1 <= radius <= MAX_RADIUS:
         raise ValueError(f"radius must be between 1 and {MAX_RADIUS}")
 
 
 def _check_share(share: float) -> None:
-    if not 0.0 < share <= 1.0:
+    if isinstance(share, bool) or not isinstance(share, (int, float)):
+        raise ValueError(f"share must be a number between 0 and 1, got {share!r}")
+    if not math.isfinite(share) or not 0.0 < share <= 1.0:
         raise ValueError("share must be greater than 0 and at most 1")

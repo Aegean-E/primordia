@@ -320,6 +320,9 @@ def _verify_engine(engine: Engine) -> None:
             raise ValueError(f"creature {creature.cid} stands on a water tile")
         if not math.isfinite(creature.energy) or creature.energy < 0.0:
             raise ValueError(f"creature {creature.cid} holds invalid energy")
+        if not 0 <= creature.age <= engine.tick:
+            raise ValueError(
+                f"creature {creature.cid} has age {creature.age}, outside [0, {engine.tick}]")
         if not 1 <= creature.species <= len(engine.registry):
             raise ValueError(
                 f"creature {creature.cid} names species {creature.species}, which is not recorded")
@@ -331,11 +334,11 @@ def _verify_engine(engine: Engine) -> None:
             raise ValueError(f"species {index} has an impossible birth tick")
         if not 0 <= record.ancestor < index:
             raise ValueError(f"species {index} names an impossible ancestor")
-    _verify_fossil(engine.fossil, len(engine.registry))
+    _verify_fossil(engine.fossil, len(engine.registry), engine.tick)
 
 
-def _verify_fossil(fossil: FossilRecord, species_total: int) -> None:
-    """Keep traces and events inside the registry and the declared event window."""
+def _verify_fossil(fossil: FossilRecord, species_total: int, tick: int) -> None:
+    """Keep traces and events inside the registry, the run and the declared event window."""
     if fossil.event_cap < 0 or len(fossil.events) > fossil.event_cap:
         raise ValueError("the fossil event log exceeds its declared capacity")
     if fossil.speciations < 0 or fossil.extinctions < 0:
@@ -347,15 +350,19 @@ def _verify_fossil(fossil: FossilRecord, species_total: int) -> None:
             raise ValueError(f"fossil trace {species_id} carries a different id")
         if min(trace.first_seen, trace.last_seen, trace.peak_population) < 0:
             raise ValueError(f"fossil trace {species_id} holds a negative measure")
-        if trace.extinct_tick is not None and trace.extinct_tick < 0:
-            raise ValueError(f"fossil trace {species_id} has a negative extinction tick")
+        if trace.first_seen > trace.last_seen or trace.last_seen > tick:
+            raise ValueError(f"fossil trace {species_id} holds an impossible sighting window")
+        if trace.extinct_tick is not None and trace.extinct_tick > tick:
+            raise ValueError(f"fossil trace {species_id} went extinct after the snapshot's tick")
     for event in fossil.events:
         if not 1 <= event.species_id <= species_total:
             raise ValueError(f"fossil event names unknown species {event.species_id}")
         if event.kind not in ("speciation", "extinction"):
             raise ValueError(f"fossil event has unknown kind {event.kind!r}")
-        if event.tick < 0:
-            raise ValueError("fossil event has a negative tick")
+        if not 0 <= event.tick <= tick:
+            raise ValueError("fossil event has a tick outside the run")
+        if not 0 <= event.ancestor < event.species_id:
+            raise ValueError(f"fossil event names an impossible ancestor {event.ancestor}")
 
 
 def _creature_from(row: Dict[str, Any]) -> Creature:
