@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
 - **Total Classes**: `45`
-- **Total Top-Level Functions**: `71`
-- **Total Class Methods**: `189`
-- **Total Source Lines**: `3439`
+- **Total Top-Level Functions**: `73`
+- **Total Class Methods**: `192`
+- **Total Source Lines**: `3484`
 
 ---
 
@@ -79,7 +79,7 @@
 ### [`primordia/engine.py`](primordia/engine.py)
 > *The deterministic tick loop: metabolism, sensing, action, birth and death.*
 
-**Size**: `446` lines (`21604` bytes)
+**Size**: `447` lines (`21635` bytes)
 
 **Classes:**
 - `class Engine` - *The simulation: a world plus its creatures, advanced one deterministic tick at a time.*
@@ -154,7 +154,7 @@
 ### [`primordia/save.py`](primordia/save.py)
 > *Persistence: one versioned JSON snapshot carries a whole run across processes.*
 
-**Size**: `390` lines (`17167` bytes)
+**Size**: `394` lines (`17489` bytes)
 
 **Classes:**
 - `class SaveError` - *A save could not be read or written; the message carries Why and Fix lines.*
@@ -202,7 +202,7 @@
 ### [`primordia/species.py`](primordia/species.py)
 > *Phenetic species: genomes cluster by distance to a founding representative.*
 
-**Size**: `64` lines (`2425` bytes)
+**Size**: `64` lines (`2432` bytes)
 
 **Classes:**
 - `class Species` - *A named lineage: who founded it, when, and from which species it split.*
@@ -402,13 +402,16 @@
 ### [`tests/test_save.py`](tests/test_save.py)
 > *Unit tests for persistence: exact round trips, atomic writes, backup fallback and quarantine.*
 
-**Size**: `280` lines (`12140` bytes)
+**Size**: `320` lines (`13916` bytes)
 
 **Classes:**
 - `class RoundTripTests`
   - Method `.setUp()`
   - Method `.test_resumed_run_replays_the_same_history()`
   - Method `.test_species_registry_and_fossil_record_survive_the_round_trip()`
+  - Method `.test_an_integer_energy_keeps_the_hash_across_the_round_trip()`
+  - Method `.test_a_custom_species_threshold_survives_the_round_trip()`
+  - Method `.test_a_save_without_a_species_threshold_uses_the_default()`
   - Method `.test_save_carries_the_format_version()`
   - Method `.test_a_newer_save_version_is_refused_without_quarantine()`
   - Method `.test_a_json_file_without_a_version_is_not_taken_for_a_save()`
@@ -441,6 +444,8 @@
 
 **Functions:**
 - `def small_config(**overrides)` - *A fast test world; the overrides let a test pin what it stages.*
+- `def flat_genome()`
+- `def land_tile(engine)`
 
 ---
 

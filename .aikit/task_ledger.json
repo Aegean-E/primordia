@@ -5,19 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792433072.2662241
+    "updated_at": 1792433180.3564217
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-audit-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/5] Web and CLI polish: the observatory answers Cache-Control no-store on every response, serves /favicon.ico as 204 instead of a 404 body, and caps POST bodies at 4 KiB so an oversized form is refused with the 400 page; the web command saves operator-driven session changes (steps, shocks) back to its save file on exit only when snapshot_hash moved, so untouched saves stay untouched; the REPL now refuses a zero-row species or fossil count instead of quietly showing ten; 5 new tests; checklists: passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792356760.901642,
-      "timestamp_str": "2026-10-18 23:52:40"
-    },
     {
       "task_id": "task-primordia-audit-v1",
       "phase": "phase 4",
@@ -227,6 +217,16 @@
       "status": "in_progress",
       "timestamp": 1792433072.2662241,
       "timestamp_str": "2026-10-19 21:04:32"
+    },
+    {
+      "task_id": "task-primordia-audit-v4",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/5] Round trip fixed: Engine.spawn stores energy as a float, so spawn(..., energy=45) no longer changes the snapshot hash after a save/load; SpeciesRegistry normalizes its threshold to a float, and a save now carries species_distance, with older files defaulting to 0.18 and non-finite or negative thresholds refused as corrupt. 3 new failing-first tests (integer energy hash, custom threshold, old-save default); 129/129 tests in 2.4s; 4/4 gates; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792433180.3564217,
+      "timestamp_str": "2026-10-19 21:06:20"
     }
   ]
 }

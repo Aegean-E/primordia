@@ -30,7 +30,7 @@ class SpeciesRegistry:
     """Assigns every genome a species id by distance to each species' founding genome."""
 
     def __init__(self, distance: float = SPECIATION_DISTANCE) -> None:
-        self.distance = distance
+        self.distance = float(distance)
         self._members: List[Species] = []
 
     def __len__(self) -> int:

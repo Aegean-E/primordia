@@ -23,7 +23,7 @@ from primordia.creature import Creature
 from primordia.engine import Engine
 from primordia.fossil import FossilEvent, FossilRecord, SpeciesTrace
 from primordia.genome import Genome
-from primordia.species import Species, SpeciesRegistry
+from primordia.species import SPECIATION_DISTANCE, Species, SpeciesRegistry
 from primordia.world import WorldConfig
 
 SAVE_VERSION = 1
@@ -197,6 +197,7 @@ def _engine_to_data(engine: Engine) -> Dict[str, Any]:
         "tick": engine.tick,
         "next_cid": engine.next_cid,
         "config": asdict(engine.config),
+        "species_distance": engine.registry.distance,
         "rng": {"version": state[0], "state": list(state[1]), "gauss_next": state[2]},
         "world": {
             "terrain": list(engine.world.terrain),
@@ -271,7 +272,8 @@ def _engine_from_data(data: Dict[str, Any]) -> Engine:
     engine.world.temperature = [float(heat) for heat in layers["temperature"]]
     engine.creatures = [_creature_from(row) for row in data["creatures"]]
     engine.registry = SpeciesRegistry.from_species(
-        [_species_from(row) for row in data["species"]])
+        [_species_from(row) for row in data["species"]],
+        distance=float(data.get("species_distance", SPECIATION_DISTANCE)))
     engine.fossil = _fossil_from(data["fossil"])
     engine.tick = int(data["tick"])
     engine.next_cid = int(data["next_cid"])
@@ -303,6 +305,8 @@ def _verify_engine(engine: Engine) -> None:
         raise ValueError("the temperature layer holds a value outside [0, 1]")
     if not 0 <= engine.tick or engine.next_cid < 1:
         raise ValueError("the snapshot has a negative tick or a non-positive next cid")
+    if not math.isfinite(engine.registry.distance) or engine.registry.distance < 0.0:
+        raise ValueError("the species distance must be a non-negative finite number")
     seen = set()
     for creature in engine.creatures:
         if creature.cid in seen:

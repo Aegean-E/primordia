@@ -108,6 +108,7 @@ class Engine:
         if (isinstance(energy, bool) or not isinstance(energy, (int, float))
                 or not math.isfinite(energy) or energy < 0.0):
             raise ValueError(f"energy must be a non-negative finite number, got {energy!r}")
+        energy = float(energy)
         if not self.world.is_land(x, y):
             raise ValueError(f"({x}, {y}) is not a land tile; creatures live on land only")
         species_id, is_new = self.registry.classify(genome, self.tick)

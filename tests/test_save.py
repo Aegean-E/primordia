@@ -8,7 +8,9 @@ from unittest import mock
 
 from primordia import shocks
 from primordia.engine import Engine
+from primordia.genome import GENES, Genome
 from primordia.save import SAVE_VERSION, SaveError, load_from, save_to
+from primordia.species import SPECIATION_DISTANCE, SpeciesRegistry
 from primordia.world import WorldConfig
 
 
@@ -17,6 +19,18 @@ def small_config(**overrides) -> WorldConfig:
     base = dict(width=16, height=10, day_length=60, food_regrowth=0.12)
     base.update(overrides)
     return WorldConfig(**base)
+
+
+def flat_genome() -> Genome:
+    return Genome(genes=tuple(0.5 for _ in GENES))
+
+
+def land_tile(engine: Engine) -> tuple[int, int]:
+    for y in range(engine.config.height):
+        for x in range(engine.config.width):
+            if engine.world.is_land(x, y):
+                return x, y
+    raise AssertionError("the test world holds no land")
 
 
 class RoundTripTests(unittest.TestCase):
@@ -58,6 +72,32 @@ class RoundTripTests(unittest.TestCase):
         self.assertEqual(sorted(resumed.fossil.traces), sorted(original.fossil.traces))
         self.assertEqual([c.species for c in resumed.creatures],
                          [c.species for c in original.creatures])
+
+    def test_an_integer_energy_keeps_the_hash_across_the_round_trip(self):
+        original = Engine(config=small_config(), seed=7, founders=0)
+        x, y = land_tile(original)
+        original.spawn(flat_genome(), x, y, energy=45)
+        save_to(original, self.path)
+        resumed = load_from(self.path)
+        self.assertEqual(resumed.snapshot_hash(), original.snapshot_hash())
+
+    def test_a_custom_species_threshold_survives_the_round_trip(self):
+        original = Engine(config=small_config(), seed=7, founders=0)
+        original.registry = SpeciesRegistry(distance=0.30)
+        x, y = land_tile(original)
+        original.spawn(flat_genome(), x, y, energy=20.0)
+        save_to(original, self.path)
+        resumed = load_from(self.path)
+        self.assertEqual(resumed.registry.distance, 0.30)
+        self.assertEqual(resumed.snapshot_hash(), original.snapshot_hash())
+
+    def test_a_save_without_a_species_threshold_uses_the_default(self):
+        engine = Engine(config=small_config(), seed=7, founders=5)
+        save_to(engine, self.path)
+        data = json.loads(self.path.read_text(encoding="utf-8"))
+        del data["species_distance"]
+        self.path.write_text(json.dumps(data), encoding="utf-8")
+        self.assertEqual(load_from(self.path).registry.distance, SPECIATION_DISTANCE)
 
     def test_save_carries_the_format_version(self):
         engine = Engine(config=small_config(), seed=5, founders=10)
