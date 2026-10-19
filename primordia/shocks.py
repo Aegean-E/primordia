@@ -1,4 +1,4 @@
-"""God-mode interventions: meteors, blooms, culls and introductions.
+"""God-mode interventions: meteors, blooms, culls, introductions, ice ages and radiation bursts.
 
 Each intervention mutates only state the engine already carries - the food layer, the living
 creatures, the registry's ancestral genome - and returns a small report. None of them adds
@@ -11,7 +11,7 @@ import math
 from dataclasses import dataclass
 
 from primordia.engine import FOUNDER_JITTER, Engine
-from primordia.genome import Genome
+from primordia.genome import Genome, mutate
 from primordia.world import LAND
 
 MAX_RADIUS = 12
@@ -92,6 +92,50 @@ def introduce(engine: Engine, count: int) -> ShockReport:
         x, y = engine.world.xy(tile)
         engine.spawn(Genome(genes=genes), x, y)
     return ShockReport("introduce", f"{count} near-clones of species 1", creatures=count)
+
+
+def ice_age(engine: Engine, share: float = 0.5) -> ShockReport:
+    """Climatic chill: land tiles lose a share of food and creatures suffer thermophily stress."""
+    _check_share(share)
+    tiles = 0
+    for tile in range(engine.world.length):
+        if engine.world.terrain[tile] == LAND:
+            engine.world.food[tile] = max(0.0, engine.world.food[tile] * (1.0 - share))
+            tiles += 1
+    killed = 0
+    for creature in engine.creatures:
+        if creature.alive:
+            chill = 20.0 * share * (0.3 + 0.7 * creature.genome.trait("thermophily"))
+            creature.energy -= chill
+            if creature.energy <= 0.0:
+                creature.alive = False
+                creature.energy = 0.0
+                killed += 1
+    engine.creatures = [creature for creature in engine.creatures if creature.alive]
+    return ShockReport("ice_age", f"share {share:g}", tiles=tiles, creatures=killed)
+
+
+def radiation_burst(engine: Engine, share: float = 0.3) -> ShockReport:
+    """Mutagenic pulse: irradiates a share of living creatures, causing mutations and speciation."""
+    _check_share(share)
+    living = [creature for creature in engine.creatures if creature.alive]
+    if not living:
+        return ShockReport("radiation_burst", f"share {share:g} (0 speciations)", creatures=0)
+    count = max(1, int(len(living) * share))
+    chosen = engine.rng.sample(living, count)
+    speciations = 0
+    for target in chosen:
+        new_genome = mutate(target.genome, engine.rng)
+        species_id, is_new = engine.registry.classify(new_genome, engine.tick,
+                                                      ancestor=target.species)
+        if is_new:
+            engine.fossil.record_speciation(engine.tick, species_id,
+                                            ancestor=target.species, detail="radiation")
+            speciations += 1
+        target.genome = new_genome
+        target.species = species_id
+    return ShockReport("radiation_burst", f"share {share:g} ({speciations} speciations)",
+                       creatures=count)
 
 
 def _disc(engine: Engine, x: int, y: int, radius: int):

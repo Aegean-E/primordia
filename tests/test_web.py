@@ -133,6 +133,41 @@ class IntroduceTests(unittest.TestCase):
             self.assertLessEqual(genetic_distance(creature.genome, founder), SPECIATION_DISTANCE)
 
 
+class IceAgeTests(unittest.TestCase):
+    def test_ice_age_reduces_food_and_stresses_population(self):
+        engine = small_engine(founders=0)
+        x, y = land_tile(engine)
+        tile = engine.world.index(x, y)
+        engine.world.food[tile] = 8.0
+        c1 = engine.spawn(flat_genome(), x, y, energy=5.0)
+        c2 = engine.spawn(flat_genome(), x, y, energy=50.0)
+        report = shocks.ice_age(engine, 0.5)
+        self.assertEqual(report.action, "ice_age")
+        self.assertEqual(engine.world.food[tile], 4.0)
+        self.assertFalse(c1.alive)
+        self.assertNotIn(c1, engine.creatures)
+        self.assertTrue(c2.alive)
+        self.assertIn(c2, engine.creatures)
+        self.assertGreaterEqual(report.tiles, 1)
+        self.assertEqual(report.creatures, 1)
+
+
+class RadiationBurstTests(unittest.TestCase):
+    def test_radiation_burst_mutates_genes_and_triggers_speciation(self):
+        engine = small_engine(seed=12, founders=20)
+        for _ in range(10):
+            engine.step()
+        before_species = len(engine.registry)
+        report = shocks.radiation_burst(engine, 0.8)
+        self.assertEqual(report.action, "radiation_burst")
+        self.assertGreater(report.creatures, 0)
+        # Check that mutated creatures are still valid genomes
+        for creature in engine.creatures:
+            self.assertEqual(len(creature.genome.genes), len(GENES))
+            for val in creature.genome.genes:
+                self.assertTrue(0.0 <= val <= 1.0)
+
+
 class DiscGeometryTests(unittest.TestCase):
     def test_meteor_and_bloom_sweep_a_disc_not_a_square(self):
         engine = small_engine(founders=0)
@@ -167,6 +202,14 @@ class ValidationTests(unittest.TestCase):
             shocks.cull(engine, 1.5)
         with self.assertRaises(ValueError):
             shocks.introduce(engine, 0)
+        with self.assertRaises(ValueError):
+            shocks.ice_age(engine, 0.0)
+        with self.assertRaises(ValueError):
+            shocks.ice_age(engine, 1.5)
+        with self.assertRaises(ValueError):
+            shocks.radiation_burst(engine, 0.0)
+        with self.assertRaises(ValueError):
+            shocks.radiation_burst(engine, 1.5)
 
     def test_shocks_refuse_values_that_are_not_whole_numbers(self):
         engine = small_engine()
@@ -177,6 +220,8 @@ class ValidationTests(unittest.TestCase):
             lambda: shocks.introduce(engine, 1.5),
             lambda: shocks.cull(engine, "0.5"),
             lambda: shocks.meteor(engine, True, 0, radius=1),
+            lambda: shocks.ice_age(engine, "0.5"),
+            lambda: shocks.radiation_burst(engine, "0.5"),
         )
         for call in calls:
             with self.subTest(call=call):

@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
-- **Total Classes**: `45`
-- **Total Top-Level Functions**: `74`
-- **Total Class Methods**: `195`
-- **Total Source Lines**: `3557`
+- **Total Classes**: `47`
+- **Total Top-Level Functions**: `76`
+- **Total Class Methods**: `197`
+- **Total Source Lines**: `3646`
 
 ---
 
@@ -179,9 +179,9 @@
 ---
 
 ### [`primordia/shocks.py`](primordia/shocks.py)
-> *God-mode interventions: meteors, blooms, culls and introductions.*
+> *God-mode interventions: meteors, blooms, culls, introductions, ice ages and radiation bursts.*
 
-**Size**: `134` lines (`5585` bytes)
+**Size**: `178` lines (`7688` bytes)
 
 **Classes:**
 - `class ShockReport` - *What one intervention did, for the operator and the tests.*
@@ -191,6 +191,8 @@
 - `def bloom(engine, x, y, radius, share)` - *Feed a disc: its land tiles rise toward the food cap without ever passing it.*
 - `def cull(engine, share)` - *Thin the population: the weakest share (lowest energy, then lowest cid) is removed.*
 - `def introduce(engine, count)` - *Release near-clones of the ancestral lineage onto random land tiles.*
+- `def ice_age(engine, share)` - *Climatic chill: land tiles lose a share of food and creatures suffer thermophily stress.*
+- `def radiation_burst(engine, share)` - *Mutagenic pulse: irradiates a share of living creatures, causing mutations and speciation.*
 - `def _disc(engine, x, y, radius)` - *Every land tile within `radius` Euclidean steps of `(x, y)`, boundary included.*
 - `def _inside(dx, dy, radius)` - *True when an offset lies inside the closed disc of `radius`.*
 - `def _check_whole(name, value)` - *Refuse floats and booleans before they reach a range() or a tile index.*
@@ -473,7 +475,7 @@
 ### [`tests/test_web.py`](tests/test_web.py)
 > *Unit tests for the observatory: state payload, dashboard, god-mode shocks and the server.*
 
-**Size**: `310` lines (`13353` bytes)
+**Size**: `355` lines (`15303` bytes)
 
 **Classes:**
 - `class PayloadTests`
@@ -490,6 +492,10 @@
   - Method `.test_cull_removes_the_weakest_share_deterministically()`
 - `class IntroduceTests`
   - Method `.test_introduce_releases_near_clones_of_the_founder_lineage()`
+- `class IceAgeTests`
+  - Method `.test_ice_age_reduces_food_and_stresses_population()`
+- `class RadiationBurstTests`
+  - Method `.test_radiation_burst_mutates_genes_and_triggers_speciation()`
 - `class DiscGeometryTests`
   - Method `.test_meteor_and_bloom_sweep_a_disc_not_a_square()`
 - `class ValidationTests`
