@@ -5,19 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792440144.7655842
+    "updated_at": 1792440417.4457211
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-hardening-v3",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/4] Simulation correctness: the neighbour hash is now updated on every move, death and birth so interactions use actual positions (previously a creature was queried at its start-of-tick tile all tick); newborns killed in their birth tick are not retained; the second stride stops on its target instead of overshooting; the ancestral template itself founds species 1, so every jittered founder is at most 0.15 RMS from it and the herd is provably one species. 5 new failing-first tests (including 120 seeds); 111/111 tests in 2.1s; 3000-tick soak at 887 ticks/s with 151 creatures and 47 species; checklists: passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792361271.5196111,
-      "timestamp_str": "2026-10-19 01:07:51"
-    },
     {
       "task_id": "task-primordia-hardening-v3",
       "phase": "phase 4",
@@ -222,6 +212,16 @@
       "status": "in_progress",
       "timestamp": 1792440144.7655842,
       "timestamp_str": "2026-10-19 23:02:24"
+    },
+    {
+      "task_id": "task-primordia-observatory-v5",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/5] Population and trait time-series SVG graphs: added build_population_svg and build_traits_svg vector chart generators; session history tracking in observatory with MAX_HISTORY buffer; served /history.json endpoint; embedded trends panel in dashboard; 3 new tests; 142/142 tests pass; 4/4 gates; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792440417.4457211,
+      "timestamp_str": "2026-10-19 23:06:57"
     }
   ]
 }

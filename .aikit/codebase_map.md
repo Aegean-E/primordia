@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
-- **Total Classes**: `48`
-- **Total Top-Level Functions**: `77`
-- **Total Class Methods**: `202`
-- **Total Source Lines**: `3833`
+- **Total Classes**: `49`
+- **Total Top-Level Functions**: `80`
+- **Total Class Methods**: `205`
+- **Total Source Lines**: `4057`
 
 ---
 
@@ -221,16 +221,19 @@
 ### [`primordia/web.py`](primordia/web.py)
 > *The observatory: a local web view of a running world, with god-mode interventions.*
 
-**Size**: `497` lines (`22184` bytes)
+**Size**: `679` lines (`31203` bytes)
 
 **Functions:**
 - `def state_payload(engine)` - *The observable facts of one world, as JSON-ready data.*
-- `def render_dashboard(engine, auto, notice)` - *The whole dashboard as one self-contained HTML page.*
+- `def record_history_point(engine)` - *Capture one snapshot of population and trait trends for time-series charts.*
+- `def build_population_svg(history)` - *Render population and living species count over time as an SVG chart.*
+- `def build_traits_svg(history)` - *Render average trait trajectories over time as an SVG chart.*
+- `def render_dashboard(engine, auto, notice, history)` - *The whole dashboard as one self-contained HTML page.*
 - `def build_phylogeny_svg(payload)` - *Render a phylogenetic tree as an SVG cladogram from lineage data.*
 - `def _map_html(engine, payload)` - *The tile grid: food shaded green, water blue, creatures dotted by lineage colour.*
 - `def _god_forms(cx, cy, width, height)` - *The intervention forms, pre-filled with the world's centre.*
-- `def make_handler(engine, lock, quiet)` - *The HTTP handler bound to one engine; every engine touch happens under `lock`.*
-- `def make_server(engine, host, port, quiet)` - *A server for `engine` on `(host, port)`; port 0 picks a free one.*
+- `def make_handler(engine, lock, quiet, history)` - *The HTTP handler bound to one engine; every engine touch happens under `lock`.*
+- `def make_server(engine, host, port, quiet, history)` - *A server for `engine` on `(host, port)`; port 0 picks a free one.*
 - `def serve(engine, host, port, out)` - *Run the observatory until interrupted; returns the exit code 0.*
 - `def _apply_god(engine, path, fields)` - *Map one god-mode POST path onto a shock; bad input raises ValueError.*
 - `def _content_length(header)` - *Validate the declared body size before reading; a bad header is a 400, never a wait.*
@@ -476,7 +479,7 @@
 ### [`tests/test_web.py`](tests/test_web.py)
 > *Unit tests for the observatory: state payload, dashboard, god-mode shocks and the server.*
 
-**Size**: `414` lines (`18056` bytes)
+**Size**: `456` lines (`19756` bytes)
 
 **Classes:**
 - `class PayloadTests`
@@ -490,6 +493,9 @@
 - `class PhylogenyTests`
   - Method `.test_empty_lineage_renders_fallback_svg()`
   - Method `.test_populated_lineage_renders_cladogram_nodes_and_branches()`
+- `class TimeSeriesTests`
+  - Method `.test_population_svg_renders_polylines()`
+  - Method `.test_traits_svg_renders_trait_polylines()`
 - `class MeteorTests`
   - Method `.test_meteor_strips_food_and_kills_within_its_radius()`
 - `class BloomTests`
@@ -519,6 +525,7 @@
   - Method `._raw_post(header)`
   - Method `.test_god_mode_form_mutates_the_world()`
   - Method `.test_god_mode_ice_age_and_radiation_burst_mutate_world()`
+  - Method `.test_history_json_endpoint_served()`
 - `class ServeTests`
   - Method `.test_an_impossible_port_raises_a_save_error_asking_for_another()`
   - Method `.test_a_public_bind_warns_that_there_is_no_authentication()`

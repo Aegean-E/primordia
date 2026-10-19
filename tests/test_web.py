@@ -14,7 +14,15 @@ from primordia.engine import Engine
 from primordia.genome import GENES, Genome, genetic_distance
 from primordia.save import SAVE_VERSION, SaveError
 from primordia.species import SPECIATION_DISTANCE
-from primordia.web import build_phylogeny_svg, make_server, render_dashboard, serve, state_payload
+from primordia.web import (
+    build_phylogeny_svg,
+    build_population_svg,
+    build_traits_svg,
+    make_server,
+    render_dashboard,
+    serve,
+    state_payload,
+)
 from primordia.world import LAND, WorldConfig
 
 
@@ -120,6 +128,32 @@ class PhylogenyTests(unittest.TestCase):
             self.assertIn(f"sp #{sp}", svg)
         self.assertIn("alive (40)", svg)
         self.assertIn("extinct t:40", svg)
+
+
+class TimeSeriesTests(unittest.TestCase):
+    def test_population_svg_renders_polylines(self):
+        history = [
+            {"tick": 0, "population": 30, "species_alive": 1, "traits": {"diet": 0.2, "size": 0.3}},
+            {"tick": 10, "population": 45, "species_alive": 2, "traits": {"diet": 0.25, "size": 0.35}},
+        ]
+        svg = build_population_svg(history)
+        self.assertIn("<svg", svg)
+        self.assertIn("<polyline", svg)
+        self.assertIn("Population", svg)
+        self.assertIn("Species", svg)
+
+    def test_traits_svg_renders_trait_polylines(self):
+        history = [
+            {"tick": 0, "population": 30, "species_alive": 1,
+             "traits": {"diet": 0.2, "size": 0.3, "speed": 0.4, "metabolism": 0.5, "thermophily": 0.6}},
+            {"tick": 20, "population": 50, "species_alive": 3,
+             "traits": {"diet": 0.3, "size": 0.4, "speed": 0.35, "metabolism": 0.55, "thermophily": 0.58}},
+        ]
+        svg = build_traits_svg(history)
+        self.assertIn("<svg", svg)
+        self.assertIn("<polyline", svg)
+        for trait in ("diet", "size", "speed", "metabolism", "thermophily"):
+            self.assertIn(trait, svg)
 
 
 class MeteorTests(unittest.TestCase):
@@ -383,6 +417,14 @@ class HttpSmokeTests(unittest.TestCase):
         req2 = urllib.request.Request(self.base + "/god/radiation_burst", data=data)
         with urllib.request.urlopen(req2, timeout=5) as resp:
             self.assertEqual(resp.status, 200)
+
+    def test_history_json_endpoint_served(self):
+        with urllib.request.urlopen(self.base + "/history.json", timeout=5) as response:
+            self.assertEqual(response.status, 200)
+            self.assertEqual(response.headers.get("Content-Type"), "application/json; charset=utf-8")
+            data = json.loads(response.read().decode("utf-8"))
+        self.assertIsInstance(data, list)
+        self.assertGreaterEqual(len(data), 1)
 
 
 class ServeTests(unittest.TestCase):

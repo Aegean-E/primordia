@@ -25,6 +25,7 @@ from primordia.world import LAND
 
 MAX_STEP_PER_REQUEST = 2000
 MAX_POST_BYTES = 4096
+MAX_HISTORY = 500
 RECENT_EVENTS = 20
 LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
 
@@ -111,8 +112,166 @@ def state_payload(engine: Engine) -> Dict[str, Any]:
     }
 
 
-def render_dashboard(engine: Engine, auto: int = 0, notice: str = "") -> str:
+def record_history_point(engine: Engine) -> Dict[str, Any]:
+    """Capture one snapshot of population and trait trends for time-series charts."""
+    return {
+        "tick": engine.tick,
+        "population": len(engine.creatures),
+        "species_alive": len(species_counts(engine.creatures)),
+        "traits": {name: round(value, 3) for name, value in trait_means(engine.creatures).items()},
+    }
+
+
+def build_population_svg(history: List[Dict[str, Any]]) -> str:
+    """Render population and living species count over time as an SVG chart."""
+    if not history:
+        return ('<svg width="680" height="200" class="chart-svg">'
+                '<text x="20" y="30" fill="#6f8296" font-family="monospace" font-size="12">'
+                'no history data</text></svg>')
+
+    width, height = 680.0, 200.0
+    x0, y0, pw, ph = 50.0, 30.0, 580.0, 135.0
+
+    min_tick = min(p["tick"] for p in history)
+    max_tick = max(p["tick"] for p in history)
+    span_tick = max(1, max_tick - min_tick)
+
+    max_pop = max(max(p["population"] for p in history), 10)
+    max_sp = max(max(p["species_alive"] for p in history), 5)
+
+    def x_pos(tick: int) -> float:
+        return x0 + ((tick - min_tick) / span_tick) * pw
+
+    def y_pop(val: float) -> float:
+        return y0 + ph - (val / (max_pop * 1.15)) * ph
+
+    def y_sp(val: float) -> float:
+        return y0 + ph - (val / (max_sp * 1.25)) * ph
+
+    grid_lines = []
+    for frac in (0.25, 0.5, 0.75, 1.0):
+        gy = y0 + ph * (1.0 - frac)
+        grid_lines.append(f'<line x1="{x0}" y1="{gy:.1f}" x2="{x0 + pw}" y2="{gy:.1f}" stroke="#1a2430" stroke-width="1"/>')
+        pop_val = int(max_pop * 1.15 * frac)
+        grid_lines.append(f'<text x="{x0 - 6}" y="{gy + 4:.1f}" fill="#48bb78" font-family="ui-monospace, monospace" font-size="10" text-anchor="end">{pop_val}</text>')
+        sp_val = int(max_sp * 1.25 * frac)
+        grid_lines.append(f'<text x="{x0 + pw + 6}" y="{gy + 4:.1f}" fill="#38b2ac" font-family="ui-monospace, monospace" font-size="10" text-anchor="start">{sp_val}</text>')
+
+    axis_box = f'<rect x="{x0}" y="{y0}" width="{pw}" height="{ph}" fill="#0e141b" stroke="#1a2430" stroke-width="1"/>'
+
+    x_labels = [
+        f'<text x="{x0}" y="{y0 + ph + 16}" fill="#6f8296" font-family="ui-monospace, monospace" font-size="10">tick {min_tick}</text>',
+        f'<text x="{x0 + pw}" y="{y0 + ph + 16}" fill="#6f8296" font-family="ui-monospace, monospace" font-size="10" text-anchor="end">tick {max_tick}</text>',
+    ]
+
+    if len(history) == 1:
+        pt = history[0]
+        elements = [
+            f'<circle cx="{x0 + pw/2:.1f}" cy="{y_pop(pt["population"]):.1f}" r="5" fill="#48bb78"/>',
+            f'<circle cx="{x0 + pw/2:.1f}" cy="{y_sp(pt["species_alive"]):.1f}" r="5" fill="#38b2ac"/>',
+            f'<text x="{x0 + pw/2:.1f}" y="{y0 + ph/2:.1f}" fill="#6f8296" font-family="ui-monospace, monospace" font-size="11" text-anchor="middle">Step the world to watch population trends unfold</text>',
+        ]
+    else:
+        pop_pts = " ".join(f"{x_pos(p['tick']):.1f},{y_pop(p['population']):.1f}" for p in history)
+        sp_pts = " ".join(f"{x_pos(p['tick']):.1f},{y_sp(p['species_alive']):.1f}" for p in history)
+        elements = [
+            f'<polyline points="{pop_pts}" fill="none" stroke="#48bb78" stroke-width="2.5"/>',
+            f'<polyline points="{sp_pts}" fill="none" stroke="#38b2ac" stroke-width="2.0"/>',
+        ]
+
+    cur_pop = history[-1]["population"]
+    cur_sp = history[-1]["species_alive"]
+    legend = (
+        f'<text x="{x0}" y="18" fill="#48bb78" font-family="ui-monospace, monospace" font-size="12" font-weight="600">● Population ({cur_pop})</text>'
+        f'<text x="{x0 + 170}" y="18" fill="#38b2ac" font-family="ui-monospace, monospace" font-size="12" font-weight="600">● Species ({cur_sp})</text>'
+    )
+
+    return (
+        f'<svg width="{int(width)}" height="{int(height)}" viewBox="0 0 {int(width)} {int(height)}" '
+        f'class="chart-svg" style="background:#0b0f14; border-radius:6px; border:1px solid #1a2430; display:block; max-width:100%;">'
+        f'{axis_box}{"".join(grid_lines)}{"".join(x_labels)}{"".join(elements)}{legend}'
+        f'</svg>'
+    )
+
+
+def build_traits_svg(history: List[Dict[str, Any]]) -> str:
+    """Render average trait trajectories over time as an SVG chart."""
+    if not history:
+        return ('<svg width="680" height="200" class="chart-svg">'
+                '<text x="20" y="30" fill="#6f8296" font-family="monospace" font-size="12">'
+                'no history data</text></svg>')
+
+    width, height = 680.0, 200.0
+    x0, y0, pw, ph = 50.0, 30.0, 580.0, 135.0
+
+    min_tick = min(p["tick"] for p in history)
+    max_tick = max(p["tick"] for p in history)
+    span_tick = max(1, max_tick - min_tick)
+
+    def x_pos(tick: int) -> float:
+        return x0 + ((tick - min_tick) / span_tick) * pw
+
+    def y_pos(val: float) -> float:
+        return y0 + ph - min(1.0, max(0.0, val)) * ph
+
+    grid_lines = []
+    for frac in (0.0, 0.25, 0.5, 0.75, 1.0):
+        gy = y0 + ph * (1.0 - frac)
+        grid_lines.append(f'<line x1="{x0}" y1="{gy:.1f}" x2="{x0 + pw}" y2="{gy:.1f}" stroke="#1a2430" stroke-width="1"/>')
+        grid_lines.append(f'<text x="{x0 - 6}" y="{gy + 4:.1f}" fill="#6f8296" font-family="ui-monospace, monospace" font-size="10" text-anchor="end">{frac:.2f}</text>')
+
+    axis_box = f'<rect x="{x0}" y="{y0}" width="{pw}" height="{ph}" fill="#0e141b" stroke="#1a2430" stroke-width="1"/>'
+
+    x_labels = [
+        f'<text x="{x0}" y="{y0 + ph + 16}" fill="#6f8296" font-family="ui-monospace, monospace" font-size="10">tick {min_tick}</text>',
+        f'<text x="{x0 + pw}" y="{y0 + ph + 16}" fill="#6f8296" font-family="ui-monospace, monospace" font-size="10" text-anchor="end">tick {max_tick}</text>',
+    ]
+
+    trait_colors = {
+        "diet": "#ed8936",
+        "size": "#e53e3e",
+        "speed": "#3182ce",
+        "metabolism": "#9f7aea",
+        "thermophily": "#ecc94b",
+    }
+
+    elements = []
+    if len(history) == 1:
+        pt = history[0]
+        elements.append(
+            f'<text x="{x0 + pw/2:.1f}" y="{y0 + ph/2:.1f}" fill="#6f8296" font-family="ui-monospace, monospace" font-size="11" text-anchor="middle">Step the world to watch trait evolution unfold</text>'
+        )
+        for trait, color in trait_colors.items():
+            val = pt["traits"].get(trait, 0.5)
+            elements.append(f'<circle cx="{x0 + pw/2:.1f}" cy="{y_pos(val):.1f}" r="4" fill="{color}"/>')
+    else:
+        for trait, color in trait_colors.items():
+            pts = " ".join(f"{x_pos(p['tick']):.1f},{y_pos(p['traits'].get(trait, 0.5)):.1f}" for p in history)
+            elements.append(f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="2.0"/>')
+
+    last_traits = history[-1]["traits"]
+    legend_items = []
+    lx = x0
+    for trait, color in trait_colors.items():
+        val = last_traits.get(trait, 0.0)
+        legend_items.append(
+            f'<text x="{lx:.1f}" y="18" fill="{color}" font-family="ui-monospace, monospace" font-size="11" font-weight="600">● {trait} {val:.2f}</text>'
+        )
+        lx += 115.0
+
+    return (
+        f'<svg width="{int(width)}" height="{int(height)}" viewBox="0 0 {int(width)} {int(height)}" '
+        f'class="chart-svg" style="background:#0b0f14; border-radius:6px; border:1px solid #1a2430; display:block; max-width:100%;">'
+        f'{axis_box}{"".join(grid_lines)}{"".join(x_labels)}{"".join(elements)}{"".join(legend_items)}'
+        f'</svg>'
+    )
+
+
+def render_dashboard(engine: Engine, auto: int = 0, notice: str = "",
+                     history: Optional[List[Dict[str, Any]]] = None) -> str:
     """The whole dashboard as one self-contained HTML page."""
+    if history is None:
+        history = [record_history_point(engine)]
     payload = state_payload(engine)
     width, height = payload["width"], payload["height"]
     cx, cy = width // 2, height // 2
@@ -140,7 +299,7 @@ def render_dashboard(engine: Engine, auto: int = 0, notice: str = "") -> str:
 <h1>Primordia <span class="sub">tick {payload['tick']}</span></h1>
 <p class="stats">population {payload['population']} &middot; species {payload['species_alive']} alive of {payload['species_total']} &middot; speciations {payload['speciations']} &middot; extinctions {payload['extinctions']}</p>
 <p class="traits">mean traits: {traits}</p>
-<nav><a href="/?step=1">step 1</a><a href="/?step=25">step 25</a><a href="/?step=100">step 100</a><a href="/?step=400&auto=2">auto-play</a><a href="/">refresh</a><a href="/state.json">state.json</a><a href="/save">save</a></nav>
+<nav><a href="/?step=1">step 1</a><a href="/?step=25">step 25</a><a href="/?step=100">step 100</a><a href="/?step=400&auto=2">auto-play</a><a href="/">refresh</a><a href="/state.json">state.json</a><a href="/history.json">history.json</a><a href="/save">save</a></nav>
 {notice_html}
 <div class="layout">
 <section class="map" style="grid-template-columns: repeat({width}, 16px)">{_map_html(engine, payload)}</section>
@@ -152,6 +311,13 @@ def render_dashboard(engine: Engine, auto: int = 0, notice: str = "") -> str:
 <ol>{events_html}</ol>
 </aside>
 </div>
+<section class="trends-panel" style="margin-top: 24px;">
+<h2>Ecology trends & population history</h2>
+<div style="display: flex; flex-direction: column; gap: 16px;">
+  <div style="overflow-x: auto; padding: 4px 0;">{build_population_svg(history)}</div>
+  <div style="overflow-x: auto; padding: 4px 0;">{build_traits_svg(history)}</div>
+</div>
+</section>
 <section class="phylogeny-panel" style="margin-top: 24px;">
 <h2>Phylogenetic tree</h2>
 <div class="tree-container" style="overflow-x: auto; padding: 4px 0;">{build_phylogeny_svg(payload)}</div>
@@ -303,8 +469,11 @@ def _god_forms(cx: int, cy: int, width: int, height: int) -> str:
 <form method="post" action="/god/radiation_burst"><input name="share" type="number" value="0.3" min="0.05" max="1" step="0.05"><button>radiation burst</button></form>"""
 
 
-def make_handler(engine: Engine, lock: threading.Lock, quiet: bool = False) -> type:
+def make_handler(engine: Engine, lock: threading.Lock, quiet: bool = False,
+                 history: Optional[List[Dict[str, Any]]] = None) -> type:
     """The HTTP handler bound to one engine; every engine touch happens under `lock`."""
+    if history is None:
+        history = [record_history_point(engine)]
 
     class Observatory(http.server.BaseHTTPRequestHandler):
         server_version = "PrimordiaObservatory/1.0"
@@ -324,14 +493,23 @@ def make_handler(engine: Engine, lock: threading.Lock, quiet: bool = False) -> t
                     self._send_page(400, _error_page(str(error)))
                     return
                 with lock:
-                    for _ in range(step):
+                    cadence = max(1, step // 30) if step > 0 else 1
+                    for i in range(step):
                         engine.step()
+                        if (i + 1) % cadence == 0 or (i + 1) == step:
+                            history.append(record_history_point(engine))
+                            if len(history) > MAX_HISTORY:
+                                del history[0]
                     notice = query.get("notice", [""])[0]
-                    self._send_page(200, render_dashboard(engine, auto=auto, notice=notice))
+                    self._send_page(200, render_dashboard(engine, auto=auto, notice=notice, history=history))
             elif parsed.path == "/state.json":
                 with lock:
                     body = json.dumps(state_payload(engine),
                                       separators=(",", ":")).encode("utf-8")
+                self._send(200, body, "application/json; charset=utf-8")
+            elif parsed.path == "/history.json":
+                with lock:
+                    body = json.dumps(history, separators=(",", ":")).encode("utf-8")
                 self._send(200, body, "application/json; charset=utf-8")
             elif parsed.path == "/favicon.ico":
                 self._send(204, b"", "image/x-icon")
@@ -356,6 +534,9 @@ def make_handler(engine: Engine, lock: threading.Lock, quiet: bool = False) -> t
             with lock:
                 try:
                     report = _apply_god(engine, parsed.path, fields)
+                    history.append(record_history_point(engine))
+                    if len(history) > MAX_HISTORY:
+                        del history[0]
                 except ValueError as error:
                     self._send_page(400, _error_page(str(error)))
                     return
@@ -384,9 +565,10 @@ def make_handler(engine: Engine, lock: threading.Lock, quiet: bool = False) -> t
 
 
 def make_server(engine: Engine, host: str = "127.0.0.1", port: int = 8000,
-                quiet: bool = False) -> http.server.ThreadingHTTPServer:
+                quiet: bool = False,
+                history: Optional[List[Dict[str, Any]]] = None) -> http.server.ThreadingHTTPServer:
     """A server for `engine` on `(host, port)`; port 0 picks a free one."""
-    handler = make_handler(engine, threading.Lock(), quiet=quiet)
+    handler = make_handler(engine, threading.Lock(), quiet=quiet, history=history)
     return http.server.ThreadingHTTPServer((host, port), handler)
 
 
