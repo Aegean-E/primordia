@@ -5,18 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792439841.2190533
+    "updated_at": 1792439968.7608664
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-fixes-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'task-primordia-fixes-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1792360237.33394,
-      "timestamp_str": "2026-10-19 00:50:37"
-    },
     {
       "task_id": "task-primordia-hardening-v3",
       "phase": "phase 2",
@@ -227,6 +218,16 @@
       "status": "in_progress",
       "timestamp": 1792439841.2190533,
       "timestamp_str": "2026-10-19 22:57:21"
+    },
+    {
+      "task_id": "task-primordia-observatory-v5",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/5] Web Observatory God-mode integration & full lineage payload: wired /god/ice_age and /god/radiation_burst into HTTP handler and forms; included complete species lineage array in state_payload for phylogenetic tracing; 2 new tests; 136/136 tests pass; 4/4 gates; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792439968.7608664,
+      "timestamp_str": "2026-10-19 22:59:28"
     }
   ]
 }

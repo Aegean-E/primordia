@@ -9,8 +9,8 @@
 - **Total Python Modules**: `23`
 - **Total Classes**: `47`
 - **Total Top-Level Functions**: `76`
-- **Total Class Methods**: `197`
-- **Total Source Lines**: `3646`
+- **Total Class Methods**: `199`
+- **Total Source Lines**: `3695`
 
 ---
 
@@ -221,7 +221,7 @@
 ### [`primordia/web.py`](primordia/web.py)
 > *The observatory: a local web view of a running world, with god-mode interventions.*
 
-**Size**: `369` lines (`16956` bytes)
+**Size**: `389` lines (`18091` bytes)
 
 **Functions:**
 - `def state_payload(engine)` - *The observable facts of one world, as JSON-ready data.*
@@ -475,12 +475,13 @@
 ### [`tests/test_web.py`](tests/test_web.py)
 > *Unit tests for the observatory: state payload, dashboard, god-mode shocks and the server.*
 
-**Size**: `355` lines (`15303` bytes)
+**Size**: `384` lines (`16700` bytes)
 
 **Classes:**
 - `class PayloadTests`
   - Method `.test_state_payload_reports_the_living_world()`
   - Method `.test_state_payload_is_json_ready()`
+  - Method `.test_state_payload_includes_full_lineage()`
 - `class DashboardTests`
   - Method `.test_dashboard_carries_the_map_the_tables_and_the_controls()`
   - Method `.test_auto_refresh_is_optional()`
@@ -512,6 +513,7 @@
   - Method `.test_a_negative_content_length_is_refused_instead_of_read_to_eof()`
   - Method `._raw_post(header)`
   - Method `.test_god_mode_form_mutates_the_world()`
+  - Method `.test_god_mode_ice_age_and_radiation_burst_mutate_world()`
 - `class ServeTests`
   - Method `.test_an_impossible_port_raises_a_save_error_asking_for_another()`
   - Method `.test_a_public_bind_warns_that_there_is_no_authentication()`

@@ -56,6 +56,21 @@ class PayloadTests(unittest.TestCase):
         text = json.dumps(state_payload(engine))
         self.assertIn('"tick": 1', text)
 
+    def test_state_payload_includes_full_lineage(self):
+        engine = small_engine(seed=10, founders=25)
+        for _ in range(50):
+            engine.step()
+        payload = state_payload(engine)
+        self.assertIn("lineage", payload)
+        self.assertEqual(len(payload["lineage"]), len(engine.registry))
+        for item in payload["lineage"]:
+            self.assertIn("id", item)
+            self.assertIn("ancestor", item)
+            self.assertIn("birth_tick", item)
+            self.assertIn("alive", item)
+            self.assertIn("peak", item)
+            self.assertIn("extinct_tick", item)
+
 
 class DashboardTests(unittest.TestCase):
     def test_dashboard_carries_the_map_the_tables_and_the_controls(self):
@@ -66,7 +81,8 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("Primordia", page)
         self.assertIn("population", page)
         self.assertIn("step=100", page)
-        for action in ("/god/meteor", "/god/bloom", "/god/cull", "/god/introduce", "/save"):
+        for action in ("/god/meteor", "/god/bloom", "/god/cull", "/god/introduce",
+                       "/god/ice_age", "/god/radiation_burst", "/save"):
             self.assertIn(action, page)
         self.assertEqual(page.count('class="tile"'), engine.world.length)
 
@@ -324,6 +340,19 @@ class HttpSmokeTests(unittest.TestCase):
         with urllib.request.urlopen(request, timeout=5):
             pass
         self.assertLess(len(self.engine.creatures), before)
+
+    def test_god_mode_ice_age_and_radiation_burst_mutate_world(self):
+        food_sum_before = sum(self.engine.world.food)
+        data = urllib.parse.urlencode({"share": "0.4"}).encode("utf-8")
+        req1 = urllib.request.Request(self.base + "/god/ice_age", data=data)
+        with urllib.request.urlopen(req1, timeout=5) as resp:
+            self.assertEqual(resp.status, 200)
+        self.assertLess(sum(self.engine.world.food), food_sum_before)
+
+        data = urllib.parse.urlencode({"share": "0.5"}).encode("utf-8")
+        req2 = urllib.request.Request(self.base + "/god/radiation_burst", data=data)
+        with urllib.request.urlopen(req2, timeout=5) as resp:
+            self.assertEqual(resp.status, 200)
 
 
 class ServeTests(unittest.TestCase):

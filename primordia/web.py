@@ -75,6 +75,19 @@ def state_payload(engine: Engine) -> Dict[str, Any]:
             "birth_tick": record.birth_tick,
             "ancestor": record.ancestor,
         })
+    lineage = []
+    for species_id in range(1, len(engine.registry) + 1):
+        record = engine.registry.get(species_id)
+        trace = engine.fossil.traces.get(species_id)
+        alive_count = counts.get(species_id, 0)
+        lineage.append({
+            "id": species_id,
+            "ancestor": record.ancestor,
+            "birth_tick": record.birth_tick,
+            "alive": alive_count,
+            "peak": trace.peak_population if trace else alive_count,
+            "extinct_tick": trace.extinct_tick if trace else None,
+        })
     return {
         "tick": engine.tick,
         "population": len(engine.creatures),
@@ -89,6 +102,7 @@ def state_payload(engine: Engine) -> Dict[str, Any]:
         "food": [round(stock, 2) for stock in engine.world.food],
         "creatures": [[creature.x, creature.y, creature.species] for creature in engine.creatures],
         "species": rows,
+        "lineage": lineage,
         "events": [
             {"tick": event.tick, "kind": event.kind, "species": event.species_id,
              "ancestor": event.ancestor, "detail": event.detail}
@@ -176,7 +190,9 @@ def _god_forms(cx: int, cy: int, width: int, height: int) -> str:
 <form method="post" action="/god/meteor">{spot}<input name="radius" type="number" value="2" min="1" max="{shocks.MAX_RADIUS}"><button>meteor</button></form>
 <form method="post" action="/god/bloom">{spot}<input name="radius" type="number" value="1" min="1" max="{shocks.MAX_RADIUS}"><button>bloom</button></form>
 <form method="post" action="/god/cull"><input name="share" type="number" value="0.25" min="0" max="1" step="0.05"><button>cull the weakest</button></form>
-<form method="post" action="/god/introduce"><input name="count" type="number" value="10" min="1" max="{shocks.MAX_INTRODUCTION}"><button>introduce near-clones</button></form>"""
+<form method="post" action="/god/introduce"><input name="count" type="number" value="10" min="1" max="{shocks.MAX_INTRODUCTION}"><button>introduce near-clones</button></form>
+<form method="post" action="/god/ice_age"><input name="share" type="number" value="0.5" min="0.05" max="1" step="0.05"><button>ice age</button></form>
+<form method="post" action="/god/radiation_burst"><input name="share" type="number" value="0.3" min="0.05" max="1" step="0.05"><button>radiation burst</button></form>"""
 
 
 def make_handler(engine: Engine, lock: threading.Lock, quiet: bool = False) -> type:
@@ -306,6 +322,10 @@ def _apply_god(engine: Engine, path: str, fields: Dict[str, List[str]]) -> shock
         return shocks.cull(engine, _field_float(fields, "share"))
     if path == "/god/introduce":
         return shocks.introduce(engine, _field_int(fields, "count"))
+    if path == "/god/ice_age":
+        return shocks.ice_age(engine, _field_float(fields, "share", default=0.5))
+    if path == "/god/radiation_burst":
+        return shocks.radiation_burst(engine, _field_float(fields, "share", default=0.3))
     raise ValueError(f"unknown intervention: {path}")
 
 
