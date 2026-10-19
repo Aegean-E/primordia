@@ -9,8 +9,8 @@
 - **Total Python Modules**: `23`
 - **Total Classes**: `45`
 - **Total Top-Level Functions**: `71`
-- **Total Class Methods**: `188`
-- **Total Source Lines**: `3427`
+- **Total Class Methods**: `189`
+- **Total Source Lines**: `3439`
 
 ---
 
@@ -79,7 +79,7 @@
 ### [`primordia/engine.py`](primordia/engine.py)
 > *The deterministic tick loop: metabolism, sensing, action, birth and death.*
 
-**Size**: `447` lines (`21708` bytes)
+**Size**: `446` lines (`21604` bytes)
 
 **Classes:**
 - `class Engine` - *The simulation: a world plus its creatures, advanced one deterministic tick at a time.*
@@ -308,7 +308,7 @@
 ### [`tests/test_engine.py`](tests/test_engine.py)
 > *Unit tests for the engine: determinism, invariants and the behavioural mechanics.*
 
-**Size**: `275` lines (`12108` bytes)
+**Size**: `288` lines (`12811` bytes)
 
 **Classes:**
 - `class DeterminismTests`
@@ -327,6 +327,7 @@
   - Method `.test_a_dead_creature_leaves_the_neighbour_buckets()`
   - Method `.test_a_newborn_joins_the_neighbour_buckets_at_its_parent()`
   - Method `.test_the_second_stride_stops_on_its_target()`
+  - Method `.test_a_blocked_direct_step_never_sidesteps_off_the_target_axis()`
   - Method `.test_grazing_moves_energy_from_the_soil_to_the_grazer()`
   - Method `.test_spawn_refuses_non_finite_or_negative_energy()`
   - Method `.test_grazer_grazes_where_it_stands_instead_of_marching_to_equal_stock()`

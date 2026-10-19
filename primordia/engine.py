@@ -343,13 +343,12 @@ class Engine:
             return
         dx, dy = x - creature.x, y - creature.y
         steps: List[Tuple[int, int]] = []
-        horizontal = (1 if dx > 0 else -1, 0)
-        vertical = (0, 1 if dy > 0 else -1)
-        if abs(dx) >= abs(dy):
-            steps = [horizontal, vertical]
-        else:
-            steps = [vertical, horizontal]
-        steps = [step for step in steps if step[0] != 0 or step[1] != 0]
+        if dx:
+            steps.append((1 if dx > 0 else -1, 0))
+        if dy:
+            steps.append((0, 1 if dy > 0 else -1))
+        if abs(dx) < abs(dy):
+            steps.reverse()
         for step_x, step_y in steps:
             target = (creature.x + step_x, creature.y + step_y)
             if not self.world.is_land(*target):

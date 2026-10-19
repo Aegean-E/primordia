@@ -7,7 +7,7 @@ from unittest import mock
 from primordia.engine import Engine
 from primordia.genome import GENES, GENE_COUNT, Genome, genetic_distance
 from primordia.species import SPECIATION_DISTANCE
-from primordia.world import WorldConfig
+from primordia.world import WATER, WorldConfig
 
 
 def small_engine(seed: int, founders: int = 30, **overrides) -> Engine:
@@ -160,6 +160,19 @@ class BehaviourTests(unittest.TestCase):
         with mock.patch("random.Random.random", return_value=0.0):
             engine._move_towards(creature, 6, 5, engine._neighbour_hash())
         self.assertEqual((creature.x, creature.y), (6, 5))
+
+    def test_a_blocked_direct_step_never_sidesteps_off_the_target_axis(self):
+        for water, start, target in (
+            ((5, 4), (5, 5), (5, 3)),
+            ((4, 5), (5, 5), (3, 5)),
+        ):
+            with self.subTest(water=water):
+                engine = small_engine(3, founders=0, water_ratio=0.0)
+                engine.world.terrain[engine.world.index(*water)] = WATER
+                creature = engine.spawn(staged_genome(), *start, energy=20.0)
+                with mock.patch("random.Random.random", return_value=0.0):
+                    engine._move_towards(creature, *target, engine._neighbour_hash())
+                self.assertEqual((creature.x, creature.y), start)
 
     def test_grazing_moves_energy_from_the_soil_to_the_grazer(self):
         engine = small_engine(2, founders=0, initial_food_share=0.0)

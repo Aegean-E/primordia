@@ -1,34 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "task-primordia-hygiene-v1",
+    "task_id": "task-primordia-audit-v4",
     "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1792432650.6827304,
-    "completed_at": 1792432654.091782
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1792433072.2662241
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-audit-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/5] Persistence hardened: a save version this build cannot read raises a readable SaveError with Why and Fix and is never quarantined (previously the file was moved aside as corrupt); a missing primary with a live .bak restores itself on load; a failed replace removes its temp file instead of leaving .tmp_ leftovers; 3 new tests; checklists: passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792356666.470943,
-      "timestamp_str": "2026-10-18 23:51:06"
-    },
-    {
-      "task_id": "task-primordia-audit-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/5] Meteor and bloom now sweep a true Euclidean disc (squared distance at most squared radius, boundary inclusive) as their docstrings and the README always promised, instead of a Chebyshev square, for both the tiles they take and the creatures they kill; 1 new geometry test; checklists: passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792356709.4952726,
-      "timestamp_str": "2026-10-18 23:51:49"
-    },
     {
       "task_id": "task-primordia-audit-v1",
       "phase": "phase 4",
@@ -222,6 +201,32 @@
       "status": "completed",
       "timestamp": 1792432654.0917838,
       "timestamp_str": "2026-10-19 20:57:34"
+    },
+    {
+      "task_id": "task-primordia-audit-v4",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/5] movement: never invent a step on a zero-delta axis when the direct tile is water (creatures currently sidestep away from the target); [2/5] round-trip: spawn normalizes energy to float so integer energy keeps the snapshot hash across save/load, and saves carry the species registry distance (0.18 default for old files); [3/5] integrity: shocks refuse non-whole coordinates, radius and count plus non-numeric shares, and snapshot verification refuses impossible ages, fossil dates and event ancestors; [4/5] release 1.0.4 with README, ADR-010 and the test tally; [5/5] strict gates, commits and close.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792433021.4419365,
+      "timestamp_str": "2026-10-19 21:03:41",
+      "impact_assessment": {
+        "why": "The fourth full-code audit found defects past 1.0.3: a blocked direct step makes a creature sidestep on an axis it does not need to move along; spawn(energy=45) stores an int so the snapshot hash changes after a save/load; a custom species threshold is lost by saves; shock API misuse raises TypeError instead of a readable ValueError; and snapshots with negative ages or impossible fossil dates are trusted.",
+        "benefits": "Creatures stay on the target line when the direct tile is water; the save/load replay contract holds for integer energy and custom thresholds; operator mistakes get readable ValueErrors; malformed snapshots are refused instead of rendering nonsense.",
+        "risks": "contract: movement and shock validation change edge-input behaviour, and saves gain an optional distance field (old saves still load at 0.18); dependency: none; concurrency: none; state: fixed-seed histories change where a creature used to sidestep, and a previously loadable malformed snapshot may now be refused; determinism stays exact for valid saves.",
+        "mitigation": "Failing-first test per defect; full suite plus a 500-tick save/load hash replay after each milestone; keep the new save field optional with a documented default; regenerate the map, record checklists and commit each milestone alone."
+      }
+    },
+    {
+      "task_id": "task-primordia-audit-v4",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[1/5] Movement fixed: a creature whose direct tile toward a target is water no longer invents a step on an axis with a zero delta (it used to sidestep, and a second stride could carry it to (3,5) or (5,3)); steps now come only from nonzero deltas, larger axis first, unchanged on open ground. 1 new failing-first test covers both axes; 126/126 tests in 2.5s; 4/4 gates; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792433072.2662241,
+      "timestamp_str": "2026-10-19 21:04:32"
     }
   ]
 }
