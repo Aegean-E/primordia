@@ -4,10 +4,11 @@ Primordia is a zero-dependency evolution sandbox: seed a biosphere, run its cloc
 genomes vary, compete and speciate. A run replays exactly from its seed, and a fossil record
 keeps the story of what happened.
 
-> **Status**: v1.0.3 - all six milestones are in: the genome model, the seasonal world and the
+> **Status**: v1.0.4 - all six milestones are in: the genome model, the seasonal world and the
 > deterministic engine, phenetic species with a fossil record, atomic saves and a command line,
 > and the web observatory; post-release audits hardened configs, saves, the filesystem edges,
-> the observatory's request handling and the simulation's neighbour bookkeeping.
+> the observatory's request handling, the simulation's neighbour bookkeeping and blocked steps,
+> and the round-trip, intervention-input and snapshot-date contracts.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -96,7 +97,8 @@ weaker neighbour when its genes allow, otherwise grazing the best tile it can se
 discounted by the walk, so it grazes where it stands when local food is good instead of herding
 onto one maximum - or reproduces when a compatible mate is near, or wanders. Attacks are
 softened by a comparable body (armor), movement is one tile per stride with a second stride
-rolled against speed, and a dead body returns to the soil as food for the next generation.
+rolled against speed, and a dead body returns to the soil as food for the next generation. A
+blocked direct step waits or takes the other axis; it never turns into a sidestep.
 
 Determinism is the contract: every random draw comes from one seeded `random.Random` in a fixed
 order, so the same seed replays the same history exactly - a property the suite checks by
@@ -141,8 +143,10 @@ quarantined while its `.bak` takes over, a save written by a different save vers
 with a clear error and left untouched, a missing primary with a live `.bak` restores itself,
 and every failure carries a `Why:` and a `Fix:` line with exit codes 0, 1 and 2. A snapshot is
 verified before it is trusted: layer sizes, terrain and climate ranges, unique creature ids,
-in-bounds land positions, species references and finite numbers must all hold, or the file is
-treated as corrupt rather than crashing the next tick. Filesystem mistakes are refused before
+in-bounds land positions, species references, finite numbers, ages inside the run and fossil
+dates inside the snapshot must all hold, or the file is treated as corrupt rather than crashing
+or lying about the next tick. The species threshold travels with the save, and files written
+before it did load at the default 0.18. Filesystem mistakes are refused before
 anything moves: a path that is a folder is never renamed away, and reading one, a file without
 a save version, or a save whose quarantine cannot move it all end in a readable `SaveError`
 rather than a traceback. The shell answers `step [N]`, `stats`, `species [N]`, `fossil [N]`,
@@ -179,7 +183,7 @@ The unit suite runs with:
 python -m unittest discover
 ```
 
-125 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
+132 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
 operators; terrain, standing biomass, growth and temperature invariants plus config validation,
 including non-finite and non-integer inputs, for the world; classification, ancestry and
 monotone ids for the species registry; censuses, extinction and the bounded event log for the
@@ -188,9 +192,11 @@ version-drift refusal, crash-window recovery, folder/quarantine edges and snapsh
 verification for persistence; empty-world and dead-world resilience for the engine; run,
 resume, stats, the version flag, session persistence and the interactive shell for the command
 line; payload, dashboard rendering, disc geometry for the four god-mode shocks, request body
-validation, bind failures and a real-socket smoke for the observatory; and byte-identical
-replays of the same seed, live neighbour bookkeeping, staged grazing and hunting mechanics,
-armored-defense arithmetic, a drift-to-speciation run and a performance smoke test.
+validation, bind failures and a real-socket smoke for the observatory; byte-identical replays
+of the same seed, live neighbour bookkeeping, staged grazing and hunting mechanics,
+armored-defense arithmetic, a drift-to-speciation run, a blocked direct step that never
+sidesteps, integer-energy and custom-threshold round trips, typed shock inputs, refused
+snapshot dates and a performance smoke test.
 
 ## 📜 License
 

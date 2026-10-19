@@ -5,18 +5,9 @@
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1792433256.3825576
+    "updated_at": 1792433347.0359733
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-audit-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'task-primordia-audit-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1792356839.331129,
-      "timestamp_str": "2026-10-18 23:53:59"
-    },
     {
       "task_id": "task-primordia-fixes-v2",
       "phase": "phase 2",
@@ -227,6 +218,16 @@
       "status": "in_progress",
       "timestamp": 1792433256.3825576,
       "timestamp_str": "2026-10-19 21:07:36"
+    },
+    {
+      "task_id": "task-primordia-audit-v4",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/5] Release 1.0.4: README documents the blocked-step guarantee, the exact integer-energy and species-threshold round trips, the stricter snapshot dates and the 132-test tally; ADR-010 records the audit, decisions and consequences; version bumped in __init__ and pyproject; verified primordia 1.0.4, a 500-tick save/load replay at 108 creatures over 3 species with 2 events and an equal hash, 132/132 tests and 4/4 gates; checklists: passed.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792433347.0359733,
+      "timestamp_str": "2026-10-19 21:09:07"
     }
   ]
 }

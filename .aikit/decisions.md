@@ -228,3 +228,33 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   malformed save that previously loaded is now quarantined with `Why:`/`Fix:` instead of
   crashing later, and non-finite state is refused rather than written. The richer hash costs
   about 1 ms per call on a populated world and is only computed on demand.
+
+### ADR-010: Blocked steps, exact round trips and treated snapshot dates
+
+- **Date**: 2026-10-19
+- **Status**: Accepted
+- **Context**: The fourth full-code audit found five gaps past 1.0.3. `_move_towards` built a
+  step for both axes even when one delta was zero, so a creature whose direct tile was water
+  stepped sideways and a second stride could carry it away from the target. `Engine.spawn`
+  stored an integer energy unchanged while `load_from` restores floats, so `spawn(...,
+  energy=45)` changed the snapshot hash across a save/load. Saves omitted the species
+  registry's threshold, so an engine with a custom distance reloaded at 0.18. Shock parameters
+  were only compared, so a float coordinate reached `range()` as a `TypeError` and a string
+  share failed a comparison. Snapshot verification checked layer shapes and creature bounds
+  but trusted negative or future ages, impossible fossil windows, extinction ticks beyond the
+  snapshot and events whose ancestor was outside the lineage.
+- **Decision**: Steps are built only from nonzero deltas, larger axis first, so a blocked
+  direct step waits or takes the other axis. `spawn` normalizes energy to a float, and
+  `SpeciesRegistry` normalizes its threshold to a float. Saves carry `species_distance`;
+  files without the field load at 0.18, and a non-finite or negative threshold is refused.
+  Every shock checks whole-number x/y/radius/count and a boolean-free finite share before
+  use. `load_from` refuses ages outside `[0, tick]`, sighting windows where `first_seen >
+  last_seen` or `last_seen > tick`, extinction ticks beyond the snapshot, and events with a
+  tick outside the run or `0 <= ancestor < species_id`.
+- **Consequences**: version 1.0.4. A blocked direct step no longer turns into a sidestep, so
+  fixed-seed histories change where the old sidestep happened; valid saves still replay
+  exactly, and the format version stays 1 because the new field is optional and old files use
+  the documented default. Malformed snapshots that previously loaded are now quarantined with
+  `Why:`/`Fix:`, and direct shock API misuse raises a readable `ValueError` instead of a
+  `TypeError`. Engine determinism for valid states, the save schema's existing fields and the
+  web/CLI contracts are otherwise unchanged.
