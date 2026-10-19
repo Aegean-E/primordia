@@ -8,7 +8,8 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
 - **Total Classes**: `45`
-- **Total Functions / Methods**: `71`
+- **Total Top-Level Functions**: `71`
+- **Total Class Methods**: `188`
 - **Total Source Lines**: `3427`
 
 ---
@@ -217,7 +218,7 @@
 ### [`primordia/web.py`](primordia/web.py)
 > *The observatory: a local web view of a running world, with god-mode interventions.*
 
-**Size**: `369` lines (`16891` bytes)
+**Size**: `369` lines (`16956` bytes)
 
 **Functions:**
 - `def state_payload(engine)` - *The observable facts of one world, as JSON-ready data.*
@@ -246,7 +247,7 @@
   - Method `.__post_init__()`
 - `class World` - *A mutable tile grid: terrain, a regrowing food layer and a seasonal temperature field.*
   - Method `.__init__(config, rng)`
-  - Method `.length()` - *The number of tiles in the grid.*
+  - Property `.length` - *The number of tiles in the grid.*
   - Method `.index(x, y)` - *The flat storage index of tile (x, y).*
   - Method `.xy(index)` - *The (x, y) of a flat storage index.*
   - Method `.is_land(x, y)` - *True when (x, y) is inside the grid and dry.*

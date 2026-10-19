@@ -286,7 +286,7 @@ def serve(engine: Engine, host: str = "127.0.0.1", port: int = 8000,
              " this address can step the world and fire god-mode shocks")
     try:
         server.serve_forever()
-    except KeyboardInterrupt:
+    except KeyboardInterrupt:  # hygiene: allow ctrl-c is the documented stop; serve returns 0
         pass
     finally:
         server.server_close()
