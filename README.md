@@ -206,7 +206,7 @@ The unit suite runs with:
 python -m unittest discover
 ```
 
-150 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
+151 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
 operators; terrain, standing biomass, growth and temperature invariants plus config validation,
 including non-finite and non-integer inputs, for the world; classification, ancestry and
 monotone ids for the species registry; censuses, extinction and the bounded event log for the
@@ -214,8 +214,9 @@ fossil record; population statistics and lineage drift metrics (mean and worst d
 founder, near-threshold counts, diet split, mean age); exact save round trips, atomic writes, backup recovery,
 version-drift refusal, crash-window recovery, folder/quarantine edges and snapshot-shape
 verification for persistence; empty-world and dead-world resilience for the engine; run,
-resume, stats, the version flag, session persistence and the interactive shell for the command
-line; payload, dashboard rendering, disc geometry for god-mode shocks, request body
+resume, stats, the version flag, session persistence, reports under a zero speciation
+threshold and the interactive shell for the command line; payload, dashboard rendering, disc
+geometry for god-mode shocks, request body
 validation, bind failures, real-socket smoke, full lineage payloads, phylogenetic cladograms,
 and time-series trend SVG charts for the observatory; byte-identical replays of the same seed,
 live neighbour bookkeeping, staged grazing and hunting mechanics, armored-defense arithmetic,

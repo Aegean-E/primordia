@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
 - **Total Classes**: `51`
-- **Total Top-Level Functions**: `85`
-- **Total Class Methods**: `213`
-- **Total Source Lines**: `4236`
+- **Total Top-Level Functions**: `86`
+- **Total Class Methods**: `214`
+- **Total Source Lines**: `4257`
 
 ---
 
@@ -48,7 +48,7 @@
 ### [`primordia/cli.py`](primordia/cli.py)
 > *The command line: run a biosphere, resume one, report on it, or step it interactively.*
 
-**Size**: `281` lines (`11631` bytes)
+**Size**: `289` lines (`11903` bytes)
 
 **Functions:**
 - `def main(argv, out, err, stdin)` - *Run one command; returns the exit code: 0 success, 1 failure, 2 usage.*
@@ -64,6 +64,7 @@
 - `def _summary_line(engine)`
 - `def _lineage_line(engine)`
 - `def _traits_line(engine)`
+- `def _threshold_share(engine, drift)` - *Drift as a share of the speciation threshold; a zero threshold has no ratio.*
 - `def _drift_line(engine)`
 - `def _print_species(engine, limit, out)`
 - `def _print_fossil(engine, limit, out)`
@@ -304,7 +305,7 @@
 ### [`tests/test_cli.py`](tests/test_cli.py)
 > *Unit tests for the command line: run, resume, stats and the interactive shell.*
 
-**Size**: `130` lines (`5814` bytes)
+**Size**: `143` lines (`6463` bytes)
 
 **Classes:**
 - `class CliTests`
@@ -315,6 +316,7 @@
   - Method `.test_stats_prints_population_species_and_fossil_counters()`
   - Method `.test_stats_names_the_lineage_closest_to_speciation()`
   - Method `.test_repl_species_rows_carry_drift_and_the_diet_split()`
+  - Method `.test_reports_survive_a_zero_speciation_threshold()`
   - Method `.test_missing_save_exits_one_with_why_and_fix()`
   - Method `.test_usage_errors_exit_two()`
   - Method `.test_an_impossible_world_exits_two_with_a_fix()`

@@ -230,15 +230,23 @@ def _traits_line(engine: Engine) -> str:
     return f"mean traits: {head}"
 
 
+def _threshold_share(engine: Engine, drift: float) -> str:
+    """Drift as a share of the speciation threshold; a zero threshold has no ratio."""
+    distance = engine.registry.distance
+    if distance <= 0.0:
+        return "no positive threshold"
+    return f"{drift / distance:.0%}"
+
+
 def _drift_line(engine: Engine) -> str:
     metrics = species_metrics(engine.creatures, engine.registry)
     if not metrics:
         return "closest to speciation: no living lineages"
     species_id = max(metrics, key=lambda key: (metrics[key].mean_drift, -key))
     row = metrics[species_id]
-    share = row.mean_drift / engine.registry.distance
     return (f"closest to speciation: species {species_id} at drift {row.mean_drift:.3f}"
-            f" of {engine.registry.distance:.2f} ({share:.0%}),"
+            f" of {engine.registry.distance:.2f}"
+            f" ({_threshold_share(engine, row.mean_drift)}),"
             f" {row.near_speciation} near the threshold")
 
 
@@ -255,10 +263,10 @@ def _print_species(engine: Engine, limit: int, out: TextIO) -> None:
         peak = trace.peak_population if trace else alive
         ancestor = record.ancestor if record.ancestor else "-"
         row = metrics[species_id]
-        share = row.mean_drift / engine.registry.distance
         print(f"species {species_id}: alive {alive}, peak {peak},"
               f" born tick {record.birth_tick}, ancestor {ancestor},"
-              f" drift {row.mean_drift:.3f} of {engine.registry.distance:.2f} ({share:.0%}),"
+              f" drift {row.mean_drift:.3f} of {engine.registry.distance:.2f}"
+              f" ({_threshold_share(engine, row.mean_drift)}),"
               f" near {row.near_speciation}, diet {row.herbivores}H/{row.carnivores}C,"
               f" mean age {row.mean_age:.0f}", file=out)
 

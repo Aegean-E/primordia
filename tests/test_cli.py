@@ -8,7 +8,7 @@ from unittest import mock
 
 from primordia import __version__
 from primordia.cli import _persist_session, main
-from primordia.save import load_from
+from primordia.save import load_from, save_to
 
 
 class CliTests(unittest.TestCase):
@@ -56,6 +56,19 @@ class CliTests(unittest.TestCase):
         self.assertIn("drift", out)
         self.assertIn("diet", out)
         self.assertIn("near", out)
+
+    def test_reports_survive_a_zero_speciation_threshold(self):
+        self.run_cli(["run", "--seed", "5", "--ticks", "20", "--save", self.path])
+        engine = load_from(self.path)
+        engine.registry.distance = 0.0
+        save_to(engine, self.path)
+        code, out, err = self.run_cli(["stats", self.path])
+        self.assertEqual(code, 0, err)
+        self.assertIn("closest to speciation", out)
+        self.assertIn("no positive threshold", out)
+        code, out, err = self.run_cli(["repl", self.path], stdin="species 5\nquit\n")
+        self.assertEqual(code, 0, err)
+        self.assertIn("no positive threshold", out)
 
     def test_missing_save_exits_one_with_why_and_fix(self):
         code, out, err = self.run_cli(["stats", str(Path(self.temp.name) / "nope.json")])

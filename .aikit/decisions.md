@@ -307,3 +307,20 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   column survives. Drift is measured against each lineage's own founder by construction, so a
   young species starts at zero drift even when it split far from its ancestor's founder. 8 new
   tests bring the unit suite tally from 142 to 150 tests.
+
+### ADR-013: Drift shares survive a zero speciation threshold
+
+- **Date**: 2026-10-20
+- **Status**: Accepted
+- **Context**: The review of ADR-012 found that `_drift_line` and `_print_species` divided the
+  mean drift by `registry.distance` without guarding it. `save.py` refuses only a negative or
+  non-finite `species_distance`, so a save carrying `0.0` loads, and `stats` or
+  `repl ... species` then raised an uncaught `ZeroDivisionError` instead of a readable report.
+- **Decision**: One `_threshold_share` helper renders the drift share and reports "no positive
+  threshold" when the distance is zero or negative; both report sites use it. A regression test
+  loads a save, sets the registry distance to zero, saves it, and runs `stats` and `species` to
+  assert exit code 0 and the fallback text.
+- **Consequences**: Reports no longer crash on a zero threshold and the JSON payload is
+  unchanged. A zero threshold remains an accepted (if degenerate) configuration where every
+  creature is its own founder; the loader's contract is untouched. 1 new test brings the unit
+  suite tally from 150 to 151 tests.

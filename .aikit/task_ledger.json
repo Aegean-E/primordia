@@ -1,43 +1,14 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "task-primordia-lineage-drift-v1",
+    "task_id": "task-primordia-drift-zero-threshold-v1",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1792492146.1794908,
-    "completed_at": 1792492165.3387253
+    "updated_at": 1792500399.0841985,
+    "completed_at": 1792500399.2334425
   },
   "checkpoints": [
-    {
-      "task_id": "task-primordia-hygiene-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[1/2] serve()'s deliberate ctrl-c discard carries a hygiene: allow marker on the handler's line (the widened scan's only finding); the codebase map was regenerated to match the edit (class-method counts, property detection, new byte size); full project check 4/4 gates; checklists: passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792432618.3993459,
-      "timestamp_str": "2026-10-19 20:56:58"
-    },
-    {
-      "task_id": "task-primordia-hygiene-v1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[2/2] Phase 4 closed under --strict: 4/4 gates and the milestone commit pushed to origin; the project is green again under the widened hygiene scan, with no behaviour change and the map matching the source; checklists: passed.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792432650.6827304,
-      "timestamp_str": "2026-10-19 20:57:30"
-    },
-    {
-      "task_id": "task-primordia-hygiene-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'task-primordia-hygiene-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1792432654.0917838,
-      "timestamp_str": "2026-10-19 20:57:34"
-    },
     {
       "task_id": "task-primordia-audit-v4",
       "phase": "phase 2",
@@ -222,6 +193,41 @@
       "status": "completed",
       "timestamp": 1792492165.3387272,
       "timestamp_str": "2026-10-20 13:29:25"
+    },
+    {
+      "task_id": "task-primordia-drift-zero-threshold-v1",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] Plan: guard the drift-share division in the CLI reports so a save with species_distance 0.0 renders 'no positive threshold' instead of raising ZeroDivisionError; regression test first",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792500359.637633,
+      "timestamp_str": "2026-10-20 15:45:59",
+      "impact_assessment": {
+        "why": "Review of the lineage-drift commit found that save.py accepts a zero speciation distance, after which stats and repl species crash with an uncaught ZeroDivisionError.",
+        "benefits": "Restores the readable Why:/Fix: command-line contract for every save the loader accepts and closes the review finding.",
+        "risks": "contract: CLI text only, JSON and save schema untouched; dependency: none; concurrency: none; state: no persisted fields.",
+        "mitigation": "Confine the change to one helper plus the two report sites, keep the existing percentage text for positive thresholds, and prove it with a failing-first regression test plus the full Phase 4 gate."
+      }
+    },
+    {
+      "task_id": "task-primordia-drift-zero-threshold-v1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[2/3] Fix and verification green: _threshold_share guards both drift report sites; regression test reproduces the crash first; ADR-013 recorded; README tally 151; checklists: passed (test, hygiene, guidelines, secrets 4/4)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792500399.0841985,
+      "timestamp_str": "2026-10-20 15:46:39"
+    },
+    {
+      "task_id": "task-primordia-drift-zero-threshold-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'task-primordia-drift-zero-threshold-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792500399.2334442,
+      "timestamp_str": "2026-10-20 15:46:39"
     }
   ]
 }
