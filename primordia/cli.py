@@ -15,7 +15,7 @@ import sys
 from typing import List, Optional, Sequence, TextIO
 
 from primordia import __version__
-from primordia.analytics import species_counts, trait_means
+from primordia.analytics import species_counts, species_metrics, trait_means
 from primordia.engine import Engine
 from primordia.save import SaveError, load_from, save_to
 from primordia.world import WorldConfig
@@ -201,6 +201,7 @@ def _report(engine: Engine, out: TextIO) -> None:
     print(_summary_line(engine), file=out)
     print(_lineage_line(engine), file=out)
     print(_traits_line(engine), file=out)
+    print(_drift_line(engine), file=out)
 
 
 def _summary_line(engine: Engine) -> str:
@@ -229,8 +230,21 @@ def _traits_line(engine: Engine) -> str:
     return f"mean traits: {head}"
 
 
+def _drift_line(engine: Engine) -> str:
+    metrics = species_metrics(engine.creatures, engine.registry)
+    if not metrics:
+        return "closest to speciation: no living lineages"
+    species_id = max(metrics, key=lambda key: (metrics[key].mean_drift, -key))
+    row = metrics[species_id]
+    share = row.mean_drift / engine.registry.distance
+    return (f"closest to speciation: species {species_id} at drift {row.mean_drift:.3f}"
+            f" of {engine.registry.distance:.2f} ({share:.0%}),"
+            f" {row.near_speciation} near the threshold")
+
+
 def _print_species(engine: Engine, limit: int, out: TextIO) -> None:
     counts = species_counts(engine.creatures)
+    metrics = species_metrics(engine.creatures, engine.registry)
     rows = sorted(counts.items(), key=lambda row: (-row[1], row[0]))[:limit]
     if not rows:
         print("no living lineages", file=out)
@@ -240,8 +254,13 @@ def _print_species(engine: Engine, limit: int, out: TextIO) -> None:
         trace = engine.fossil.traces.get(species_id)
         peak = trace.peak_population if trace else alive
         ancestor = record.ancestor if record.ancestor else "-"
+        row = metrics[species_id]
+        share = row.mean_drift / engine.registry.distance
         print(f"species {species_id}: alive {alive}, peak {peak},"
-              f" born tick {record.birth_tick}, ancestor {ancestor}", file=out)
+              f" born tick {record.birth_tick}, ancestor {ancestor},"
+              f" drift {row.mean_drift:.3f} of {engine.registry.distance:.2f} ({share:.0%}),"
+              f" near {row.near_speciation}, diet {row.herbivores}H/{row.carnivores}C,"
+              f" mean age {row.mean_age:.0f}", file=out)
 
 
 def _print_fossil(engine: Engine, limit: int, out: TextIO) -> None:

@@ -42,6 +42,21 @@ class CliTests(unittest.TestCase):
         for token in ("tick", "population", "species", "speciations"):
             self.assertIn(token, out)
 
+    def test_stats_names_the_lineage_closest_to_speciation(self):
+        self.run_cli(["run", "--seed", "4", "--ticks", "80", "--save", self.path])
+        code, out, err = self.run_cli(["stats", self.path])
+        self.assertEqual(code, 0, err)
+        self.assertIn("closest to speciation", out)
+        self.assertIn("drift", out)
+
+    def test_repl_species_rows_carry_drift_and_the_diet_split(self):
+        script = "step 5\nspecies 5\nquit\n"
+        code, out, err = self.run_cli(["repl", "--seed", "5"], stdin=script)
+        self.assertEqual(code, 0, err)
+        self.assertIn("drift", out)
+        self.assertIn("diet", out)
+        self.assertIn("near", out)
+
     def test_missing_save_exits_one_with_why_and_fix(self):
         code, out, err = self.run_cli(["stats", str(Path(self.temp.name) / "nope.json")])
         self.assertEqual(code, 1)

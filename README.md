@@ -4,12 +4,13 @@ Primordia is a zero-dependency evolution sandbox: seed a biosphere, run its cloc
 genomes vary, compete and speciate. A run replays exactly from its seed, and a fossil record
 keeps the story of what happened.
 
-> **Status**: v1.0.5 - all six milestones are in: the genome model, the seasonal world and the
+> **Status**: v1.0.6 - all six milestones are in: the genome model, the seasonal world and the
 > deterministic engine, phenetic species with a fossil record, atomic saves and a command line,
 > and the web observatory with interactive phylogenetic cladograms, ecology time-series charts,
-> and six god-mode shocks; post-release audits hardened configs, saves, the filesystem edges,
-> the observatory's request handling, the simulation's neighbour bookkeeping and blocked steps,
-> and the round-trip, intervention-input and snapshot-date contracts.
+> lineage drift readings, and six god-mode shocks; post-release audits hardened configs, saves,
+> the filesystem edges, the observatory's request handling, the simulation's neighbour
+> bookkeeping and blocked steps, and the round-trip, intervention-input and snapshot-date
+> contracts.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -119,6 +120,13 @@ starts with real variance inside one lineage. The template itself is the species
 the jittered herd is always one species: every offset is at most 0.15 per gene, well inside the
 0.18 speciation distance.
 
+Drift is the observable side of that rule: for every living lineage the analytics read the
+mean and worst `genetic_distance` from its founding genome, so a lineage's distance can be
+reported as a share of `SPECIATION_DISTANCE` (0.18) before it splits. A creature counts as
+*near* the threshold when it reaches 80% of that distance, and each lineage also reports its
+herbivore/carnivore split and mean age, so a radiation is legible while it happens rather than
+only after a new species appears in the fossil record.
+
 Each tick the engine censuses the living population. The fossil record keeps one trace per
 species (first and last seen, peak population, extinction tick) plus a bounded event log of
 speciations and extinction episodes; the counters stay monotone even when the window forgets an
@@ -131,7 +139,7 @@ the counter counts moments, not gravestones.
 ```bash
 python -m primordia run --seed 7 --ticks 500 --save world.json
 python -m primordia resume world.json --ticks 500     # continues and saves in place
-python -m primordia stats world.json                  # report without stepping
+python -m primordia stats world.json                  # report without stepping, with lineage drift
 python -m primordia repl world.json                   # interactive shell
 ```
 
@@ -151,8 +159,10 @@ before it did load at the default 0.18. Filesystem mistakes are refused before
 anything moves: a path that is a folder is never renamed away, and reading one, a file without
 a save version, or a save whose quarantine cannot move it all end in a readable `SaveError`
 rather than a traceback. The shell answers `step [N]`, `stats`, `species [N]`, `fossil [N]`,
-`hash`, `save PATH`, `help` and `quit`; `pip install .` also installs the same commands as a
-`primordia` script.
+`hash`, `save PATH`, `help` and `quit`; every report also names the lineage closest to
+speciation, and each `species` row carries its drift against the threshold, how many of its
+creatures are near it, its herbivore/carnivore split and its mean age. `pip install .` also
+installs the same commands as a `primordia` script.
 
 ## 🔭 The Web Observatory
 
@@ -162,7 +172,8 @@ python -m primordia web --seed 7 --ticks 500      # then open http://127.0.0.1:8
 
 The observatory is a standard-library-only server rendering one world: a food-shaded map with
 every creature dotted in its lineage's colour, the population and fossil counters, the species
-table and the recent fossil events. `?step=N` advances the clock before rendering and
+table with each lineage's drift, near-threshold count and diet split, and the recent fossil
+events. `?step=N` advances the clock before rendering and
 `?step=N&auto=S` adds a meta refresh so a tab can watch a world live; `/state.json` serves the
 same facts as data, `/history.json` serves the recorded time-series trend history, and `/save`
 downloads the standard save file.
@@ -195,11 +206,12 @@ The unit suite runs with:
 python -m unittest discover
 ```
 
-142 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
+150 tests replay fixed seeds: gene bounds and seeded reproducibility for the variation
 operators; terrain, standing biomass, growth and temperature invariants plus config validation,
 including non-finite and non-integer inputs, for the world; classification, ancestry and
 monotone ids for the species registry; censuses, extinction and the bounded event log for the
-fossil record; population statistics; exact save round trips, atomic writes, backup recovery,
+fossil record; population statistics and lineage drift metrics (mean and worst distance to the
+founder, near-threshold counts, diet split, mean age); exact save round trips, atomic writes, backup recovery,
 version-drift refusal, crash-window recovery, folder/quarantine edges and snapshot-shape
 verification for persistence; empty-world and dead-world resilience for the engine; run,
 resume, stats, the version flag, session persistence and the interactive shell for the command

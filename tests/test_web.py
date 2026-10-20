@@ -64,6 +64,21 @@ class PayloadTests(unittest.TestCase):
         text = json.dumps(state_payload(engine))
         self.assertIn('"tick": 1', text)
 
+    def test_state_payload_reports_lineage_drift_and_diet_split(self):
+        engine = small_engine()
+        for _ in range(60):
+            engine.step()
+        payload = state_payload(engine)
+        self.assertTrue(payload["species"])
+        for row in payload["species"]:
+            for key in ("drift", "max_drift", "near_speciation", "herbivores", "carnivores"):
+                self.assertIn(key, row)
+            self.assertGreaterEqual(row["drift"], 0.0)
+            self.assertLessEqual(row["max_drift"], SPECIATION_DISTANCE)
+            self.assertLessEqual(row["drift"], row["max_drift"])
+            self.assertLessEqual(row["near_speciation"], row["alive"])
+            self.assertEqual(row["herbivores"] + row["carnivores"], row["alive"])
+
     def test_state_payload_includes_full_lineage(self):
         engine = small_engine(seed=10, founders=25)
         for _ in range(50):
@@ -93,6 +108,15 @@ class DashboardTests(unittest.TestCase):
                        "/god/ice_age", "/god/radiation_burst", "/save"):
             self.assertIn(action, page)
         self.assertEqual(page.count('class="tile"'), engine.world.length)
+
+    def test_dashboard_species_table_shows_drift_near_and_diet(self):
+        engine = small_engine()
+        for _ in range(30):
+            engine.step()
+        page = render_dashboard(engine)
+        self.assertIn("<th>drift</th>", page)
+        self.assertIn("<th>near</th>", page)
+        self.assertIn("<th>diet</th>", page)
 
     def test_auto_refresh_is_optional(self):
         engine = small_engine()

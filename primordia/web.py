@@ -18,7 +18,7 @@ import urllib.parse
 from typing import Any, Callable, Dict, List, Optional
 
 from primordia import shocks
-from primordia.analytics import species_counts, trait_means
+from primordia.analytics import species_counts, species_metrics, trait_means
 from primordia.engine import Engine
 from primordia.save import SaveError, dump_text
 from primordia.world import LAND
@@ -65,16 +65,23 @@ li { color: #b9c6d4; }
 def state_payload(engine: Engine) -> Dict[str, Any]:
     """The observable facts of one world, as JSON-ready data."""
     counts = species_counts(engine.creatures)
+    metrics = species_metrics(engine.creatures, engine.registry)
     rows = []
     for species_id in sorted(counts):
         record = engine.registry.get(species_id)
         trace = engine.fossil.traces.get(species_id)
+        row = metrics[species_id]
         rows.append({
             "id": species_id,
             "alive": counts[species_id],
             "peak": trace.peak_population if trace else counts[species_id],
             "birth_tick": record.birth_tick,
             "ancestor": record.ancestor,
+            "drift": round(row.mean_drift, 3),
+            "max_drift": round(row.max_drift, 3),
+            "near_speciation": row.near_speciation,
+            "herbivores": row.herbivores,
+            "carnivores": row.carnivores,
         })
     lineage = []
     for species_id in range(1, len(engine.registry) + 1):
@@ -280,6 +287,8 @@ def render_dashboard(engine: Engine, auto: int = 0, notice: str = "",
     traits = ", ".join(f"{name} {value:.2f}" for name, value in payload["traits"].items())
     rows_html = "".join(
         f"<tr><td>{row['id']}</td><td>{row['alive']}</td><td>{row['peak']}</td>"
+        f"<td>{row['drift']:.3f}</td><td>{row['near_speciation']}</td>"
+        f"<td>{row['herbivores']}H/{row['carnivores']}C</td>"
         f"<td>{row['birth_tick']}</td><td>{row['ancestor'] or '-'}</td></tr>"
         for row in sorted(payload["species"], key=lambda row: (-row["alive"], row["id"])))
     events_html = "".join(
@@ -306,7 +315,7 @@ def render_dashboard(engine: Engine, auto: int = 0, notice: str = "",
 <aside>
 {god_html}
 <h2>Species</h2>
-<table><tr><th>id</th><th>alive</th><th>peak</th><th>born</th><th>ancestor</th></tr>{rows_html}</table>
+<table><tr><th>id</th><th>alive</th><th>peak</th><th>drift</th><th>near</th><th>diet</th><th>born</th><th>ancestor</th></tr>{rows_html}</table>
 <h2>Fossil record</h2>
 <ol>{events_html}</ol>
 </aside>

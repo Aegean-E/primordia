@@ -284,3 +284,26 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   with zero third-party dependencies and 100% offline standard-library rendering. Save format
   schemas and engine determinism contracts remain completely intact. 10 new tests bring the unit
   suite tally from 132 to 142 tests.
+
+### ADR-012: Lineage drift observability in analytics, the CLI and the observatory
+
+- **Date**: 2026-10-20
+- **Status**: Accepted
+- **Context**: Speciation is the sandbox's headline mechanic, but the tooling only exposed raw
+  population counts, global trait means and post-hoc fossil events. An operator could see that a
+  lineage had split only after a new species appeared; nothing reported how far a living lineage
+  had drifted from its founder, how many of its creatures stood near the speciation threshold, or
+  how its diet was divided. The observatory's species table repeated the same population facts.
+- **Decision**: `analytics.species_metrics` returns one frozen `SpeciesMetrics` per living
+  species: mean and worst `genetic_distance` to that species' founding genome, the count of
+  creatures at or beyond 80% of `registry.distance` (`NEAR_SPECIATION_FRACTION`), a
+  herbivore/carnivore split at the 0.5 diet gene, and mean age. Drift is reported raw so it can
+  be compared with the registry's threshold. The CLI prints a "closest to speciation" line in
+  every report and adds drift, near, diet and age to each `species` row; `state_payload` adds
+  `drift`, `max_drift`, `near_speciation`, `herbivores` and `carnivores` to each living species
+  row, and the dashboard renders drift, near and diet columns.
+- **Consequences**: version 1.0.6. The metrics are a pure read over the current population: no
+  engine, RNG, save-schema or replay change, and every existing CLI token, JSON key and table
+  column survives. Drift is measured against each lineage's own founder by construction, so a
+  young species starts at zero drift even when it split far from its ancestor's founder. 8 new
+  tests bring the unit suite tally from 142 to 150 tests.

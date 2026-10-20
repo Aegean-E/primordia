@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `23`
-- **Total Classes**: `49`
-- **Total Top-Level Functions**: `80`
-- **Total Class Methods**: `205`
-- **Total Source Lines**: `4057`
+- **Total Classes**: `51`
+- **Total Top-Level Functions**: `85`
+- **Total Class Methods**: `213`
+- **Total Source Lines**: `4236`
 
 ---
 
@@ -31,20 +31,24 @@
 ---
 
 ### [`primordia/analytics.py`](primordia/analytics.py)
-> *Small pure statistics over a population: counts by species and mean gene values.*
+> *Small pure statistics over a population: counts by species, mean gene values and drift.*
 
-**Size**: `27` lines (`995` bytes)
+**Size**: `82` lines (`3217` bytes)
+
+**Classes:**
+- `class SpeciesMetrics` - *One living lineage's spread: drift from its founder, and who is in it.*
 
 **Functions:**
 - `def species_counts(creatures)` - *How many living creatures belong to each species id.*
 - `def trait_means(creatures)` - *The living population's mean value per gene; all zeros for an empty population.*
+- `def species_metrics(creatures, registry)` - *Per living species: drift from its founding genome and its living composition.*
 
 ---
 
 ### [`primordia/cli.py`](primordia/cli.py)
 > *The command line: run a biosphere, resume one, report on it, or step it interactively.*
 
-**Size**: `262` lines (`10626` bytes)
+**Size**: `281` lines (`11631` bytes)
 
 **Functions:**
 - `def main(argv, out, err, stdin)` - *Run one command; returns the exit code: 0 success, 1 failure, 2 usage.*
@@ -60,6 +64,7 @@
 - `def _summary_line(engine)`
 - `def _lineage_line(engine)`
 - `def _traits_line(engine)`
+- `def _drift_line(engine)`
 - `def _print_species(engine, limit, out)`
 - `def _print_fossil(engine, limit, out)`
 - `def _count(words, default)`
@@ -221,7 +226,7 @@
 ### [`primordia/web.py`](primordia/web.py)
 > *The observatory: a local web view of a running world, with god-mode interventions.*
 
-**Size**: `679` lines (`31203` bytes)
+**Size**: `688` lines (`31726` bytes)
 
 **Functions:**
 - `def state_payload(engine)` - *The observable facts of one world, as JSON-ready data.*
@@ -276,20 +281,30 @@
 ### [`tests/test_analytics.py`](tests/test_analytics.py)
 > *Unit tests for the population statistics helpers.*
 
-**Size**: `31` lines (`1506` bytes)
+**Size**: `88` lines (`4258` bytes)
 
 **Classes:**
 - `class AnalyticsTests`
   - Method `.test_counts_and_means_on_a_seeded_population()`
   - Method `.test_empty_population_has_no_counts_and_zero_means()`
   - Method `.test_dead_creatures_are_not_counted_or_measured()`
+- `class SpeciesMetricsTests`
+  - Method `.test_metrics_mirror_the_living_counts_and_stay_inside_the_threshold()`
+  - Method `.test_an_empty_population_has_no_metrics()`
+  - Method `.test_diet_split_and_mean_age_describe_one_lineage()`
+  - Method `.test_near_speciation_counts_creatures_close_to_the_threshold()`
+
+**Functions:**
+- `def flat_genome(value)`
+- `def diet_genome(diet)`
+- `def land_tiles(engine, count)`
 
 ---
 
 ### [`tests/test_cli.py`](tests/test_cli.py)
 > *Unit tests for the command line: run, resume, stats and the interactive shell.*
 
-**Size**: `115` lines (`5140` bytes)
+**Size**: `130` lines (`5814` bytes)
 
 **Classes:**
 - `class CliTests`
@@ -298,6 +313,8 @@
   - Method `.test_run_reports_a_summary_and_writes_a_save()`
   - Method `.test_resume_continues_the_saved_history()`
   - Method `.test_stats_prints_population_species_and_fossil_counters()`
+  - Method `.test_stats_names_the_lineage_closest_to_speciation()`
+  - Method `.test_repl_species_rows_carry_drift_and_the_diet_split()`
   - Method `.test_missing_save_exits_one_with_why_and_fix()`
   - Method `.test_usage_errors_exit_two()`
   - Method `.test_an_impossible_world_exits_two_with_a_fix()`
@@ -479,15 +496,17 @@
 ### [`tests/test_web.py`](tests/test_web.py)
 > *Unit tests for the observatory: state payload, dashboard, god-mode shocks and the server.*
 
-**Size**: `456` lines (`19756` bytes)
+**Size**: `480` lines (`20849` bytes)
 
 **Classes:**
 - `class PayloadTests`
   - Method `.test_state_payload_reports_the_living_world()`
   - Method `.test_state_payload_is_json_ready()`
+  - Method `.test_state_payload_reports_lineage_drift_and_diet_split()`
   - Method `.test_state_payload_includes_full_lineage()`
 - `class DashboardTests`
   - Method `.test_dashboard_carries_the_map_the_tables_and_the_controls()`
+  - Method `.test_dashboard_species_table_shows_drift_near_and_diet()`
   - Method `.test_auto_refresh_is_optional()`
   - Method `.test_dashboard_renders_phylogenetic_tree()`
 - `class PhylogenyTests`
