@@ -34,7 +34,7 @@ keeps the story of what happened.
 primordia/
 ├── .aikit/                   <- project memory: record, ledger, decisions, map
 ├── .gitignore                <- transient AIKit state and Python caches excluded
-├── LICENSE                   <- MIT: use, study, share and modify
+├── LICENSE                   <- AGPLv3 Open Source License
 ├── README.md
 ├── pyproject.toml            <- build, package configuration and the `primordia` script
 ├── primordia/                <- core package
@@ -225,4 +225,4 @@ custom-threshold round trips, typed shock inputs, refused snapshot dates and a p
 
 ## 📜 License
 
-MIT - see [LICENSE](LICENSE). Use it, study it, share it, modify it.
+AGPLv3 - see [LICENSE](LICENSE).
