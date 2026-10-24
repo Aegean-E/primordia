@@ -1,5 +1,7 @@
 # primordia
 
+[![Built with AIKit](https://img.shields.io/badge/built%20with-AIKit-6f42c1)](https://github.com/Aegean-E/AIKit)
+
 Primordia is a zero-dependency evolution sandbox: seed a biosphere, run its clock, and watch
 genomes vary, compete and speciate. A run replays exactly from its seed, and a fossil record
 keeps the story of what happened.
